@@ -26,7 +26,7 @@ export const Message: React.FC<MessageProps> = ({
 
       <div className={`flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
         <div
-          className={`max-w-xs rounded-lg px-4 py-2.5 text-sm leading-relaxed ${isUser
+          className={`max-w-full rounded-lg px-4 py-2.5 text-sm leading-relaxed ${isUser
               ? 'bg-blue-600 text-white'
               : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
             }`}
