@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: digitalthi-postgres
+    environment:
+      POSTGRES_USER: digitalthi
+      POSTGRES_PASSWORD: digitalthi_password
+      POSTGRES_DB: digitalthi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U digitalthi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: digitalthi-backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://digitalthi:digitalthi_password@postgres:5432/digitalthi_db
+      OLLAMA_HOST: http://host.docker.internal:11434
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 3001 --reload
+
+volumes:
+  postgres_data:
