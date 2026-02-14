@@ -58,6 +58,20 @@ class ChatResponse(BaseModel):
     relevant_sections: List[SearchResult]
 
 
+class AddCVSectionRequest(BaseModel):
+    section_type: str
+    content: str
+    metadata: Optional[dict] = None
+
+
+class AddCVSectionResponse(BaseModel):
+    id: int
+    section_type: str
+    content: str
+    embedding_dimensions: int
+    message: str
+
+
 @app.get("/")
 async def root():
     return {"message": "Digital Thi Backend API", "status": "running"}
@@ -73,7 +87,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Message cannot be empty")
 
         logger.info(f"Processing message: {request.message[:50]}...")
-
+        print(f"Received message: {request.message[:50]}...")
         # Generate embeddings for the user message
         response = ollama.embed(
             model="nomic-embed-text",
@@ -81,7 +95,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         )
 
         embedding = response.get("embeddings", [[]])[0]
-
+        print(f"Generated embedding: {embedding[:5]}... (total {len(embedding)} dimensions)")
         if not embedding:
             raise HTTPException(
                 status_code=500, 
@@ -91,21 +105,25 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         logger.info(f"Generated embedding with {len(embedding)} dimensions")
 
         # Search for similar CV sections using vector similarity
+        # Format embedding as PostgreSQL array string
+        embedding_str = '[' + ','.join(map(str, embedding)) + ']'      
         query = text("""
             SELECT 
                 content, 
                 section_type, 
                 metadata,
-                1 - (embedding <=> :embedding::vector) as similarity
+                1 - (embedding <=> :embedding) as similarity
             FROM cv_sections
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> :embedding::vector
-            LIMIT 3
+            ORDER BY embedding <=> :embedding
+            LIMIT 10
         """)
         
-        result = await db.execute(query, {"embedding": str(embedding)})
+        logger.info(f"Executing similarity search...")
+        result = await db.execute(query, {"embedding": embedding_str})
         rows = result.fetchall()
-
+        logger.info(f"Query returned {len(rows)} rows")
+        print(f"Found {len(rows)} similar sections")
         relevant_sections = [
             SearchResult(
                 content=row.content,
@@ -132,8 +150,6 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         db.add(chat_entry)
         await db.commit()
 
-        logger.info(f"Found {len(relevant_sections)} relevant sections")
-
         return ChatResponse(
             response=response_text,
             relevant_sections=relevant_sections
@@ -149,6 +165,91 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/cv-section", response_model=AddCVSectionResponse)
+async def add_cv_section(request: AddCVSectionRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Add a CV section with embeddings to the database.
+    """
+    try:
+        if not request.content:
+            raise HTTPException(status_code=400, detail="Content cannot be empty")
+
+        logger.info(f"Adding CV section: {request.section_type}")
+
+        # Generate embeddings for the CV section content
+        response = ollama.embed(
+            model="nomic-embed-text",
+            input=request.content
+        )
+
+        embedding = response.get("embeddings", [[]])[0]
+
+        if not embedding:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate embeddings"
+            )
+
+        logger.info(f"Generated embedding with {len(embedding)} dimensions")
+
+        # Create and save CV section
+        cv_section = CVSection(
+            section_type=request.section_type,
+            content=request.content,
+            embedding=embedding,
+            meta_data=request.metadata
+        )
+        
+        db.add(cv_section)
+        await db.commit()
+        await db.refresh(cv_section)
+
+        logger.info(f"CV section added with ID: {cv_section.id}")
+
+        return AddCVSectionResponse(
+            id=cv_section.id,
+            section_type=cv_section.section_type,
+            content=cv_section.content,
+            embedding_dimensions=len(embedding),
+            message="CV section added successfully"
+        )
+
+    except ollama.ResponseError as e:
+        logger.error(f"Ollama error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ollama model error: {str(e)}. Make sure the nomic-embed-text model is installed."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cv-sections")
+async def get_cv_sections(db: AsyncSession = Depends(get_db)):
+    """
+    Get all CV sections from the database.
+    """
+    try:
+        result = await db.execute(select(CVSection))
+        sections = result.scalars().all()
+        
+        return {
+            "count": len(sections),
+            "sections": [
+                {
+                    "id": s.id,
+                    "section_type": s.section_type,
+                    "content": s.content,
+                    "metadata": s.meta_data,
+                    "created_at": s.created_at.isoformat() if s.created_at else None
+                }
+                for s in sections
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching CV sections: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health_check():

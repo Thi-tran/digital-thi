@@ -27,7 +27,7 @@ class CVSection(Base):
     section_type = Column(String(50), nullable=False)
     content = Column(Text, nullable=False)
     embedding = Column(Vector(768))
-    metadata = Column(JSONB)
+    meta_data = Column('metadata', JSONB)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
