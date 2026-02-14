@@ -22,7 +22,7 @@ export const Message: React.FC<MessageProps> = ({
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-      {!isUser && avatarSrc && <Avatar src={avatarSrc} alt={avatarAlt} size="md" />}
+      {!isUser && avatarSrc && <Avatar alt={avatarAlt} size="md" />}
 
       <div className={`flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
         <div

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { ConversationMessage, SuggestionButton } from '@/types';
+import { ConversationMessage } from '@/types';
 
 interface UseConversationReturn {
   messages: ConversationMessage[];

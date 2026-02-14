@@ -1,7 +1,7 @@
+import Image from 'next/image';
 import React from 'react';
 
 interface AvatarProps {
-  src: string;
   alt: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
@@ -16,16 +16,17 @@ const sizeMap = {
 export const personalAvatar = '/profile.jpg';
 
 export const Avatar: React.FC<AvatarProps> = ({
-  src,
   alt,
   size = 'md',
   className = '',
 }) => {
   return (
-    <img
-      src={src}
+    <Image
+      src={personalAvatar}
       alt={alt}
       className={`rounded-full object-cover ${sizeMap[size]} ${className}`}
+      width={50}
+      height={50}
     />
   );
 };
