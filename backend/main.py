@@ -94,33 +94,31 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             input=request.message
         )
 
-        embedding = response.get("embeddings", [[]])[0]
-        print(f"Generated embedding: {embedding[:5]}... (total {len(embedding)} dimensions)")
-        if not embedding:
+        embeddings = response.get("embeddings", [[]])[0]
+        print(f"Generated embedding: {embeddings[:5]}... (total {len(embeddings)} dimensions)")
+        if not embeddings:
             raise HTTPException(
                 status_code=500, 
                 detail="Failed to generate embeddings"
             )
 
-        logger.info(f"Generated embedding with {len(embedding)} dimensions")
+        logger.info(f"Generated embedding with {len(embeddings)} dimensions")
 
         # Search for similar CV sections using vector similarity
-        # Format embedding as PostgreSQL array string
-        embedding_str = '[' + ','.join(map(str, embedding)) + ']'      
         query = text("""
             SELECT 
                 content, 
                 section_type, 
                 metadata,
-                1 - (embedding <=> :embedding) as similarity
+                1 - (embedding <=> CAST(:embeddings AS vector)) as similarity
             FROM cv_sections
             WHERE embedding IS NOT NULL
-            ORDER BY embedding <=> :embedding
+            ORDER BY similarity DESC
             LIMIT 10
         """)
         
         logger.info(f"Executing similarity search...")
-        result = await db.execute(query, {"embedding": embedding_str})
+        result = await db.execute(query, {"embeddings": str(embeddings)})
         rows = result.fetchall()
         logger.info(f"Query returned {len(rows)} rows")
         print(f"Found {len(rows)} similar sections")
@@ -145,7 +143,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         chat_entry = ChatHistory(
             user_message=request.message,
             bot_response=response_text,
-            user_embedding=embedding
+            user_embedding=embeddings
         )
         db.add(chat_entry)
         await db.commit()
