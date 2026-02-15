@@ -120,6 +120,8 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
                 Don't always start the answer with "Okay" or "Sure", just provide the answer directly. Avoid generic phrases and focus on providing specific information from the CV that addresses the user's question.
+
+                At the end of the message, try to ask more questions to understand the job description from the recruiter. For example, what kinds of responsibilities or skills are most important for this role? The goal is to understand their needs to fit with my experience too.
                 """
 
             logger.info(f"Generating response with Ollama...")

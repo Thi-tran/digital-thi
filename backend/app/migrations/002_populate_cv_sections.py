@@ -12,7 +12,7 @@ async def upgrade(connection):
         },
         {
             "section_type": "SKILLS",
-            "content": "Python, FastAPI, PostgreSQL, TypeScript, React, Next.js, Node.js, Docker, Kubernetes, AWS, Git, REST APIs, GraphQL, AWS, GCP, Golang, SQL, NoSQL, pgvector, Ollama LLM, Semantic Search, Vector Embeddings"
+            "content": "Python, FastAPI, PostgreSQL, TypeScript, React, Next.js, Node.js, Docker, AWS, Git, REST APIs, GraphQL, AWS, GCP, Golang, SQL, NoSQL, pgvector, Ollama LLM, Semantic Search, Vector Embeddings"
         },
         {
             "section_type": "EXPERIENCE",
@@ -38,10 +38,6 @@ async def upgrade(connection):
         {
             "section_type": "PROJECTS",
             "content": "AI-Powered CV Chat Bot: Built a semantic search system using embeddings to answer questions about CV information. Stack: FastAPI, PostgreSQL with pgvector, Next.js, Ollama LLM."
-        },
-        {
-            "section_type": "PROJECTS",
-            "content": "Real-time Analytics Dashboard: Created interactive dashboard for monitoring system metrics. Used React, WebSockets, and PostgreSQL time-series data. Handles 10k+ events/second."
         },
     ]
     
