@@ -131,13 +131,40 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             )
             for row in rows
         ]
-
-        # Generate response based on relevant sections
+        print(f"Top relevant section: {relevant_sections[0].content[:50]}... with similarity {relevant_sections[0].similarity:.4f}" if relevant_sections else "No relevant sections found")
+        # Generate response based on relevant sections using Ollama
         if relevant_sections:
+            # Build context from relevant sections
             context = "\n".join([f"- {s.content}" for s in relevant_sections])
-            response_text = f"Based on my CV, here's what I found:\n{context}"
+            
+            # Create a prompt for Ollama to generate a personalized response
+            prompt = f"""You are me to answer questions about my CV. 
+                The user asked: "{request.message}"
+
+                Here's the relevant information from the CV:
+                {context}
+
+                Please provide a helpful, professional, and engaging response that answers their question based on this information. 
+                Add a touch of personality and professionalism to make the response feel natural and friendly.
+                Keep the response concise but informative."""
+
+            logger.info(f"Generating response with Ollama...")
+            try:
+                ollama_response = ollama.generate(
+                    model="gemma3",
+                    prompt=prompt,
+                    stream=False
+                )
+                response_text = ollama_response.get("response", "").strip()
+                print(f"Generated response: {response_text[:50]}...")  # Print the first 50 characters of the response
+                if not response_text:
+                    logger.warning(f"Failed to generate response with Ollama: {str(e)}")
+                    response_text = f"Based on my CV, here's what I found:\n{context}"
+            except Exception as e:
+                logger.warning(f"Failed to generate response with Ollama: {str(e)}")
+                response_text = f"Based on my CV, here's what I found:\n{context}"
         else:
-            response_text = "I couldn't find specific information about that in my CV. Please ask another question."
+            response_text = "I couldn't find specific information about that in my CV. Feel free to ask me about my skills, experience, education, or projects!"
 
         # Store chat history
         chat_entry = ChatHistory(
