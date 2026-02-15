@@ -36,6 +36,7 @@ class ChatHistory(Base):
     __tablename__ = "chat_history"
 
     id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(255), nullable=False, index=True)
     user_message = Column(Text, nullable=False)
     bot_response = Column(Text, nullable=False)
     user_embedding = Column(Vector(768))
@@ -53,4 +54,7 @@ async def get_db():
 async def init_db():
     """Initialize database tables"""
     async with engine.begin() as conn:
+        # Enable pgvector extension first
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        # Create all tables
         await conn.run_sync(Base.metadata.create_all)

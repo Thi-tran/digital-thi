@@ -18,5 +18,5 @@ COPY . .
 # Expose port
 EXPOSE 3001
 
-# Run the application
+# Run the application with migrations
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3001"]
