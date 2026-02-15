@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ConversationMessage } from '@/types';
 
 interface UseConversationReturn {
@@ -8,11 +8,25 @@ interface UseConversationReturn {
   addMessage: (content: string, isUser: boolean) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  sessionId: string;
 }
 
 export const useConversation = (): UseConversationReturn => {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
+
+  // Initialize session ID on mount
+  useEffect(() => {
+    const storedSessionId = localStorage.getItem('chat_session_id');
+    if (storedSessionId) {
+      setSessionId(storedSessionId);
+    } else {
+      const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('chat_session_id', newSessionId);
+      setSessionId(newSessionId);
+    }
+  }, []);
 
   const addMessage = useCallback((content: string, isUser: boolean) => {
     const newMessage: ConversationMessage = {
@@ -30,6 +44,7 @@ export const useConversation = (): UseConversationReturn => {
     addMessage,
     isLoading,
     setIsLoading,
+    sessionId,
   };
 };
 
