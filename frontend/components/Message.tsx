@@ -9,6 +9,54 @@ interface MessageProps {
   timestamp?: Date;
 }
 
+const parseContent = (content: string) => {
+  // Split by newlines and bullet points
+  const lines = content.split('\n');
+
+  return lines.map((line, idx) => {
+    const trimmedLine = line.trim();
+
+    // Handle bullet points
+    if (trimmedLine.startsWith('*')) {
+      const text = trimmedLine.substring(1).trim();
+      // Bold text within **
+      const parts = text.split(/\*\*(.*?)\*\*/);
+
+      return (
+        <li key={idx} className="ml-4 mb-2">
+          {parts.map((part, i) => (
+            i % 2 === 1 ? (
+              <strong key={i}>{part}</strong>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          ))}
+        </li>
+      );
+    }
+
+    // Handle empty lines
+    if (!trimmedLine) {
+      return <div key={idx} className="mb-3" />;
+    }
+
+    // Handle bold text within **
+    const parts = trimmedLine.split(/\*\*(.*?)\*\*/);
+
+    return (
+      <p key={idx} className="mb-2 leading-relaxed">
+        {parts.map((part, i) => (
+          i % 2 === 1 ? (
+            <strong key={i}>{part}</strong>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        ))}
+      </p>
+    );
+  });
+};
+
 export const Message: React.FC<MessageProps> = ({
   content,
   isUser,
@@ -31,7 +79,11 @@ export const Message: React.FC<MessageProps> = ({
               : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
             }`}
         >
-          <div>{content}</div>
+          <div className="space-y-2">
+            <ul className="list-disc space-y-1">
+              {parseContent(content)}
+            </ul>
+          </div>
         </div>
         {timestamp && (
           <span className="text-xs text-zinc-500 dark:text-zinc-400">{timeString}</span>

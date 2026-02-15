@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface ChatRequest {
   message: string;
+  session_id: string;
 }
 
 interface ChatResponse {
@@ -17,11 +18,18 @@ export async function POST(
 ): Promise<NextResponse<ChatResponse>> {
   try {
     const body: ChatRequest = await request.json();
-    const { message } = body;
+    const { message, session_id } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Message is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!session_id || typeof session_id !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Session ID is required' },
         { status: 400 }
       );
     }
@@ -33,7 +41,7 @@ export async function POST(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, session_id }),
     });
 
     if (!response.ok) {

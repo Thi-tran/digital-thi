@@ -19,7 +19,7 @@ interface ChatPageProps {
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessageSend }) => {
-  const { messages, addMessage, isLoading, setIsLoading } = useConversation();
+  const { messages, addMessage, isLoading, setIsLoading, sessionId } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -39,7 +39,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, session_id: sessionId }),
       });
 
       if (!response.ok) {
