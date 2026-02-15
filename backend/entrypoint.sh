@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-echo "=== Running migrations ==="
-python3 run_migrations.py up
+echo "=== Running init.sql to setup database ==="
+PGPASSWORD=digitalthi_password psql -h postgres -U digitalthi -d digitalthi_db -f /app/init.sql
 
-echo "=== Migrations complete, starting application ==="
-uvicorn main:app --host 0.0.0.0 --port 3001 --reload
+echo "=== Database initialized, starting application ==="
+uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload

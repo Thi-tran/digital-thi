@@ -1,0 +1,3 @@
+"""
+DigitalThi Backend Application
+"""

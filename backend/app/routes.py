@@ -1,155 +1,22 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+"""
+API routes and endpoints
+"""
+import logging
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 import ollama
-from typing import List, Optional
-import logging
-from contextlib import asynccontextmanager
-import os
-import importlib.util
-from pathlib import Path
 
-from database import get_db, init_db, CVSection, ChatHistory, async_sessionmaker
+from app.database import CVSection, ChatHistory
+from app.models import (
+    ChatRequest, ChatResponse, SearchResult,
+    AddCVSectionRequest, AddCVSectionResponse
+)
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def run_migrations():
-    """Run all pending database migrations"""
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL",
-        "postgresql://digitalthi:digitalthi_password@localhost:5432/digitalthi_db"
-    )
-    ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
-    
-    try:
-        engine = create_async_engine(ASYNC_DATABASE_URL)
-        
-        async with engine.begin() as connection:
-            # Create migrations tracking table
-            try:
-                await connection.execute(text("""
-                    CREATE TABLE IF NOT EXISTS _migrations (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(255) UNIQUE NOT NULL,
-                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """))
-            except Exception as e:
-                logger.debug(f"Migrations table check: {str(e)}")
-            
-            # Get applied migrations
-            try:
-                result = await connection.execute(text("SELECT name FROM _migrations ORDER BY applied_at"))
-                rows = result.fetchall()
-                applied = [row[0] for row in rows] if rows else []
-            except:
-                applied = []
-            
-            # Get migration files
-            migrations_dir = Path(__file__).parent / "migrations"
-            migration_files = sorted([f for f in migrations_dir.glob("*.py") if f.name != "__init__.py"])
-            
-            if migration_files:
-                logger.info("🔄 Running database migrations...")
-                
-                for migration_file in migration_files:
-                    module_name = migration_file.stem
-                    
-                    if module_name in applied:
-                        logger.info(f"⏭️  {module_name}: Already applied")
-                        continue
-                    
-                    try:
-                        spec = importlib.util.spec_from_file_location(module_name, migration_file)
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)
-                        
-                        await module.upgrade(connection)
-                        await connection.execute(text(
-                            "INSERT INTO _migrations (name) VALUES (:name)"
-                        ), {"name": module_name})
-                        
-                        logger.info(f"✅ {module_name}: Applied")
-                    except Exception as e:
-                        logger.error(f"❌ {module_name}: Failed - {str(e)}")
-            
-            logger.info("✨ Migrations complete")
-        
-        await engine.dispose()
-    except Exception as e:
-        logger.warning(f"Migration runner error: {str(e)}")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("Initializing database...")
-    await init_db()
-    logger.info("Running database migrations...")
-    await run_migrations()
-    yield
-    # Shutdown
-    logger.info("Shutting down...")
-
-
-app = FastAPI(title="Digital Thi Backend API", lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-class ChatRequest(BaseModel):
-    message: str
-    session_id: str
-
-
-class EmbeddingResponse(BaseModel):
-    embedding: List[float]
-    model: str
-    message: str
-
-
-class SearchResult(BaseModel):
-    content: str
-    section_type: str
-    similarity: float
-    metadata: Optional[dict] = None
-
-
-class ChatResponse(BaseModel):
-    response: str
-    relevant_sections: List[SearchResult]
-
-
-class AddCVSectionRequest(BaseModel):
-    section_type: str
-    content: str
-    metadata: Optional[dict] = None
-
-
-class AddCVSectionResponse(BaseModel):
-    id: int
-    section_type: str
-    content: str
-    embedding_dimensions: int
-    message: str
-
-
-@app.get("/")
-async def root():
-    return {"message": "Digital Thi Backend API", "status": "running"}
-
-
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
+async def chat_endpoint(request: ChatRequest, db: AsyncSession):
     """
     Process chat message: generate embeddings, search similar CV sections, and return response.
     """
@@ -161,7 +28,8 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Session ID cannot be empty")
 
         logger.info(f"Processing message for session {request.session_id}: {request.message[:50]}...")
-        print(f"Received message: {request.message[:50]}...")
+        print(f"Received message: {request.message[:50]}... {request.session_id}")
+        
         # Generate embeddings for the user message
         response = ollama.embed(
             model="nomic-embed-text",
@@ -170,6 +38,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
 
         embeddings = response.get("embeddings", [[]])[0]
         print(f"Generated embedding: {embeddings[:5]}... (total {len(embeddings)} dimensions)")
+        
         if not embeddings:
             raise HTTPException(
                 status_code=500, 
@@ -196,6 +65,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         rows = result.fetchall()
         logger.info(f"Query returned {len(rows)} rows")
         print(f"Found {len(rows)} similar sections")
+        
         relevant_sections = [
             SearchResult(
                 content=row.content,
@@ -207,6 +77,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         ]
         print(f"Top relevant section: {relevant_sections[0].content[:50]}... with similarity {relevant_sections[0].similarity:.4f}" if relevant_sections else "No relevant sections found")
         
+        # Fetch previous chat history for this session
         chat_history_query = text("""
             SELECT 
                 *
@@ -259,7 +130,8 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
                     stream=False
                 )
                 response_text = ollama_response.get("response", "").strip()
-                print(f"Generated response: {response_text[:50]}...")  # Print the first 50 characters of the response
+                print(f"Generated response: {response_text[:50]}...")
+                
                 if not response_text:
                     logger.warning(f"Failed to generate response with Ollama")
                     response_text = f"Based on my CV, here's what I found:\n{context}"
@@ -294,8 +166,8 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/cv-section", response_model=AddCVSectionResponse)
-async def add_cv_section(request: AddCVSectionRequest, db: AsyncSession = Depends(get_db)):
+
+async def add_cv_section_endpoint(request: AddCVSectionRequest, db: AsyncSession):
     """
     Add a CV section with embeddings to the database.
     """
@@ -354,8 +226,33 @@ async def add_cv_section(request: AddCVSectionRequest, db: AsyncSession = Depend
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/cv-sections/generate-embeddings")
-async def generate_cv_embeddings_endpoint(db: AsyncSession = Depends(get_db)):
+async def get_cv_sections_endpoint(db: AsyncSession):
+    """
+    Get all CV sections from the database.
+    """
+    try:
+        result = await db.execute(select(CVSection))
+        sections = result.scalars().all()
+        
+        return {
+            "count": len(sections),
+            "sections": [
+                {
+                    "id": s.id,
+                    "section_type": s.section_type,
+                    "content": s.content,
+                    "metadata": s.meta_data,
+                    "created_at": s.created_at.isoformat() if s.created_at else None
+                }
+                for s in sections
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching CV sections: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def generate_embeddings_endpoint(db: AsyncSession):
     """
     Generate embeddings for all CV sections that don't have them.
     """
@@ -407,16 +304,11 @@ async def generate_cv_embeddings_endpoint(db: AsyncSession = Depends(get_db)):
         logger.error(f"Error generating embeddings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/health")
-async def health_check():
+
+def health_check():
     """Health check endpoint to verify the service is running."""
     try:
         ollama.list()
         return {"status": "healthy", "ollama": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3001)
