@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from app.embeddings_service import generate_cv_embeddings
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession

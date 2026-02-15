@@ -2,10 +2,10 @@
 Embeddings generation service
 """
 import logging
+import os
 import ollama
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import CVSection, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,20 @@ logger = logging.getLogger(__name__)
 async def generate_cv_embeddings():
     """Generate embeddings for all CV sections that don't have them"""
     try:
-        # Create a session from the sessionmaker
-        session = async_sessionmaker()
-        async with session() as db_session:
+        # Create engine and session for this operation
+        DATABASE_URL = os.getenv(
+            "DATABASE_URL",
+            "postgresql://digitalthi:digitalthi_password@localhost:5432/digitalthi_db"
+        )
+        ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+        
+        engine = create_async_engine(ASYNC_DATABASE_URL)
+        async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        
+        async with async_session() as db_session:
+            # Import here to avoid circular dependency
+            from app.database import CVSection
+            
             # Get all CV sections without embeddings
             result = await db_session.execute(
                 select(CVSection).where(CVSection.embedding == None)
@@ -40,15 +51,21 @@ async def generate_cv_embeddings():
                     
                     if embedding:
                         cv_section.embedding = embedding
+                        db_session.add(cv_section)  # Re-add to session
                         await db_session.commit()
+                        await db_session.refresh(cv_section)  # Refresh the object
                         logger.debug(f"✅ Generated embedding for {cv_section.section_type}")
                     else:
                         logger.warning(f"⚠️ Failed to generate embedding for {cv_section.section_type}")
                 
                 except Exception as e:
                     logger.error(f"❌ Error generating embedding for {cv_section.section_type}: {str(e)}")
+                    await db_session.rollback()  # Rollback on error
             
             logger.info("✨ Embedding generation complete")
+        
+        # Clean up engine
+        await engine.dispose()
     
     except Exception as e:
         logger.warning(f"Embedding generation error: {str(e)}")

@@ -30,10 +30,3 @@ CREATE TABLE IF NOT EXISTS chat_history (
 CREATE INDEX IF NOT EXISTS chat_history_embedding_idx 
 ON chat_history USING ivfflat (user_embedding vector_cosine_ops)
 WITH (lists = 100);
-
--- Insert sample CV data (you can customize this)
-INSERT INTO cv_sections (section_type, content, metadata) VALUES
-('summary', 'Experienced software engineer with expertise in full-stack development', '{"category": "about"}'),
-('skills', 'Python, JavaScript, TypeScript, React, Next.js, FastAPI, PostgreSQL', '{"category": "technical"}'),
-('experience', 'Senior Software Engineer at Tech Company', '{"years": 5, "category": "work"}')
-ON CONFLICT DO NOTHING;
