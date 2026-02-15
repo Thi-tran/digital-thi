@@ -1,25 +1,95 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy import select, text
 import ollama
 from typing import List, Optional
 import logging
 from contextlib import asynccontextmanager
+import os
+import importlib.util
+from pathlib import Path
 
-from database import get_db, init_db, CVSection, ChatHistory
+from database import get_db, init_db, CVSection, ChatHistory, async_sessionmaker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+async def run_migrations():
+    """Run all pending database migrations"""
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL",
+        "postgresql://digitalthi:digitalthi_password@localhost:5432/digitalthi_db"
+    )
+    ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+    
+    try:
+        engine = create_async_engine(ASYNC_DATABASE_URL)
+        
+        async with engine.begin() as connection:
+            # Create migrations tracking table
+            try:
+                await connection.execute(text("""
+                    CREATE TABLE IF NOT EXISTS _migrations (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(255) UNIQUE NOT NULL,
+                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """))
+            except Exception as e:
+                logger.debug(f"Migrations table check: {str(e)}")
+            
+            # Get applied migrations
+            try:
+                result = await connection.execute(text("SELECT name FROM _migrations ORDER BY applied_at"))
+                rows = result.fetchall()
+                applied = [row[0] for row in rows] if rows else []
+            except:
+                applied = []
+            
+            # Get migration files
+            migrations_dir = Path(__file__).parent / "migrations"
+            migration_files = sorted([f for f in migrations_dir.glob("*.py") if f.name != "__init__.py"])
+            
+            if migration_files:
+                logger.info("🔄 Running database migrations...")
+                
+                for migration_file in migration_files:
+                    module_name = migration_file.stem
+                    
+                    if module_name in applied:
+                        logger.info(f"⏭️  {module_name}: Already applied")
+                        continue
+                    
+                    try:
+                        spec = importlib.util.spec_from_file_location(module_name, migration_file)
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        
+                        await module.upgrade(connection)
+                        await connection.execute(text(
+                            "INSERT INTO _migrations (name) VALUES (:name)"
+                        ), {"name": module_name})
+                        
+                        logger.info(f"✅ {module_name}: Applied")
+                    except Exception as e:
+                        logger.error(f"❌ {module_name}: Failed - {str(e)}")
+            
+            logger.info("✨ Migrations complete")
+        
+        await engine.dispose()
+    except Exception as e:
+        logger.warning(f"Migration runner error: {str(e)}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initializing database...")
     await init_db()
-    logger.info("Database initialized")
+    logger.info("Running database migrations...")
+    await run_migrations()
     yield
     # Shutdown
     logger.info("Shutting down...")
@@ -38,6 +108,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     message: str
+    session_id: str
 
 
 class EmbeddingResponse(BaseModel):
@@ -85,8 +156,11 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     try:
         if not request.message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
+        
+        if not request.session_id:
+            raise HTTPException(status_code=400, detail="Session ID cannot be empty")
 
-        logger.info(f"Processing message: {request.message[:50]}...")
+        logger.info(f"Processing message for session {request.session_id}: {request.message[:50]}...")
         print(f"Received message: {request.message[:50]}...")
         # Generate embeddings for the user message
         response = ollama.embed(
@@ -132,21 +206,50 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
             for row in rows
         ]
         print(f"Top relevant section: {relevant_sections[0].content[:50]}... with similarity {relevant_sections[0].similarity:.4f}" if relevant_sections else "No relevant sections found")
+        
+        chat_history_query = text("""
+            SELECT 
+                *
+            FROM chat_history
+            WHERE session_id = :session_id
+            ORDER BY created_at ASC
+        """)
+
+        result = await db.execute(chat_history_query, {"session_id": request.session_id})
+        chat_history = result.fetchall()
+
+        # Build conversation context from history
+        history_context = ""
+        if chat_history:
+            history_lines = []
+            for msg in chat_history[-5:]:  # Include last 5 messages for context
+                history_lines.append(f"User: {msg.user_message}")
+                history_lines.append(f"Assistant: {msg.bot_response}")
+            history_context = "\n".join(history_lines) + "\n\n" if history_lines else ""
+        
         # Generate response based on relevant sections using Ollama
         if relevant_sections:
             # Build context from relevant sections
             context = "\n".join([f"- {s.content}" for s in relevant_sections])
             
             # Create a prompt for Ollama to generate a personalized response
-            prompt = f"""You are me to answer questions about my CV. 
+            prompt = f"""You are helping to answer questions about my CV. 
+                Previous conversation:
+                {history_context}
+                
                 The user asked: "{request.message}"
 
                 Here's the relevant information from the CV:
                 {context}
 
                 Please provide a helpful, professional, and engaging response that answers their question based on this information. 
+                Remember the context of previous messages if relevant.
                 Add a touch of personality and professionalism to make the response feel natural and friendly.
-                Keep the response concise but informative."""
+                Keep the response concise but informative.
+                
+                Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
+                Don't always start the answer with "Okay" or "Sure", just provide the answer directly. Avoid generic phrases and focus on providing specific information from the CV that addresses the user's question.
+                """
 
             logger.info(f"Generating response with Ollama...")
             try:
@@ -158,7 +261,7 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
                 response_text = ollama_response.get("response", "").strip()
                 print(f"Generated response: {response_text[:50]}...")  # Print the first 50 characters of the response
                 if not response_text:
-                    logger.warning(f"Failed to generate response with Ollama: {str(e)}")
+                    logger.warning(f"Failed to generate response with Ollama")
                     response_text = f"Based on my CV, here's what I found:\n{context}"
             except Exception as e:
                 logger.warning(f"Failed to generate response with Ollama: {str(e)}")
@@ -166,8 +269,9 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         else:
             response_text = "I couldn't find specific information about that in my CV. Feel free to ask me about my skills, experience, education, or projects!"
 
-        # Store chat history
+        # Store chat history with session_id
         chat_entry = ChatHistory(
+            session_id=request.session_id,
             user_message=request.message,
             bot_response=response_text,
             user_embedding=embeddings
@@ -250,30 +354,57 @@ async def add_cv_section(request: AddCVSectionRequest, db: AsyncSession = Depend
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/cv-sections")
-async def get_cv_sections(db: AsyncSession = Depends(get_db)):
+@app.post("/api/cv-sections/generate-embeddings")
+async def generate_cv_embeddings_endpoint(db: AsyncSession = Depends(get_db)):
     """
-    Get all CV sections from the database.
+    Generate embeddings for all CV sections that don't have them.
     """
     try:
-        result = await db.execute(select(CVSection))
-        sections = result.scalars().all()
+        # Get all CV sections without embeddings
+        result = await db.execute(
+            select(CVSection).where(CVSection.embedding == None)
+        )
+        cv_sections = result.scalars().all()
+        
+        if not cv_sections:
+            return {
+                "message": "✨ All CV sections already have embeddings",
+                "count": 0
+            }
+        
+        logger.info(f"🔄 Generating embeddings for {len(cv_sections)} CV sections...")
+        
+        generated_count = 0
+        for cv_section in cv_sections:
+            try:
+                # Generate embedding for the CV section
+                response = ollama.embed(
+                    model="nomic-embed-text",
+                    input=cv_section.content
+                )
+                
+                embedding = response.get("embeddings", [[]])[0]
+                
+                if embedding:
+                    cv_section.embedding = embedding
+                    await db.commit()
+                    generated_count += 1
+                    logger.debug(f"✅ Generated embedding for {cv_section.section_type}")
+                else:
+                    logger.warning(f"⚠️ Failed to generate embedding for {cv_section.section_type}")
+            
+            except Exception as e:
+                logger.error(f"❌ Error generating embedding for {cv_section.section_type}: {str(e)}")
+        
+        logger.info(f"✨ Generated {generated_count} embeddings")
         
         return {
-            "count": len(sections),
-            "sections": [
-                {
-                    "id": s.id,
-                    "section_type": s.section_type,
-                    "content": s.content,
-                    "metadata": s.meta_data,
-                    "created_at": s.created_at.isoformat() if s.created_at else None
-                }
-                for s in sections
-            ]
+            "message": f"✨ Successfully generated embeddings for {generated_count} CV sections",
+            "count": generated_count
         }
+    
     except Exception as e:
-        logger.error(f"Error fetching CV sections: {str(e)}")
+        logger.error(f"Error generating embeddings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
