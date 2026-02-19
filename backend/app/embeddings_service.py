@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 logger = logging.getLogger(__name__)
 
+# Configure Ollama client with base URL from environment
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
+
 
 async def generate_cv_embeddings():
     """Generate embeddings for all CV sections that don't have them"""
@@ -42,7 +46,7 @@ async def generate_cv_embeddings():
             for cv_section in cv_sections:
                 try:
                     # Generate embedding for the CV section
-                    response = ollama.embed(
+                    response = ollamaClient.embed(
                         model="nomic-embed-text",
                         input=cv_section.content
                     )
