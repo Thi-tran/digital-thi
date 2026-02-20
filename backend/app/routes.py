@@ -185,7 +185,7 @@ async def add_cv_section_endpoint(request: AddCVSectionRequest, db: AsyncSession
         logger.info(f"Adding CV section: {request.section_type}")
 
         # Generate embeddings for the CV section content
-        response = client.embed(
+        response =ollamaClient.embed(
             model="nomic-embed-text",
             input=request.content
         )
@@ -282,7 +282,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
         for cv_section in cv_sections:
             try:
                 # Generate embedding for the CV section
-                response = client.embed(
+                response =ollamaClient.embed(
                     model="nomic-embed-text",
                     input=cv_section.content
                 )
