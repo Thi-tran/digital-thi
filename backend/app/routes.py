@@ -315,7 +315,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
 def health_check():
     """Health check endpoint to verify the service is running."""
     try:
-        client.list()
+        ollamaClient.list()
         return {"status": "healthy", "ollama": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
