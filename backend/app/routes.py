@@ -2,6 +2,7 @@
 API routes and endpoints
 """
 import logging
+import os
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
@@ -14,6 +15,10 @@ from app.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Configure Ollama client with base URL from environment
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
 
 
 async def chat_endpoint(request: ChatRequest, db: AsyncSession):
@@ -31,7 +36,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
         print(f"Received message: {request.message[:50]}... {request.session_id}")
         
         # Generate embeddings for the user message
-        response = ollama.embed(
+        response = ollamaClient.embed(
             model="nomic-embed-text",
             input=request.message
         )
@@ -126,7 +131,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
 
             logger.info(f"Generating response with Ollama...")
             try:
-                ollama_response = ollama.generate(
+                ollama_response = ollamaClient.generate(
                     model="gemma3",
                     prompt=prompt,
                     stream=False
@@ -180,7 +185,7 @@ async def add_cv_section_endpoint(request: AddCVSectionRequest, db: AsyncSession
         logger.info(f"Adding CV section: {request.section_type}")
 
         # Generate embeddings for the CV section content
-        response = ollama.embed(
+        response =ollamaClient.embed(
             model="nomic-embed-text",
             input=request.content
         )
@@ -277,7 +282,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
         for cv_section in cv_sections:
             try:
                 # Generate embedding for the CV section
-                response = ollama.embed(
+                response =ollamaClient.embed(
                     model="nomic-embed-text",
                     input=cv_section.content
                 )
@@ -310,7 +315,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
 def health_check():
     """Health check endpoint to verify the service is running."""
     try:
-        ollama.list()
+        ollamaClient.list()
         return {"status": "healthy", "ollama": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}

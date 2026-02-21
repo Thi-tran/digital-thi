@@ -177,7 +177,6 @@ docker-compose down -v
 ### Backend (.env)
 ```
 DATABASE_URL=postgresql://digitalthi:digitalthi_password@postgres:5432/digitalthi_db
-OLLAMA_HOST=http://host.docker.internal:11434
 FRONTEND_URL=http://localhost:3000
 ```
 

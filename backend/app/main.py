@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from app.embeddings_service import generate_cv_embeddings
 from fastapi import FastAPI, Depends
@@ -36,9 +37,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Digital Thi Backend API", lifespan=lifespan)
 
+# Get allowed origins from environment or use defaults
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allow_origins = [frontend_url, "http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
