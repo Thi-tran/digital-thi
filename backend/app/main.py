@@ -26,10 +26,6 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Running database migrations...")
-    await run_migrations()
-    logger.info("Generating embeddings for CV sections...")
-    await generate_cv_embeddings()
     yield
     # Shutdown
     logger.info("Shutting down...")
@@ -67,6 +63,10 @@ async def add_cv_section(request, db: AsyncSession = Depends(get_db)):
 @app.get("/api/cv-sections")
 async def get_cv_sections(db: AsyncSession = Depends(get_db)):
     return await get_cv_sections_endpoint(db)
+
+@app.post("/api/run-migrations")
+async def run_migrations_endpoint(db: AsyncSession = Depends(get_db)):
+    return await run_migrations(db)
 
 @app.post("/api/cv-sections/generate-embeddings")
 async def generate_embeddings(db: AsyncSession = Depends(get_db)):
