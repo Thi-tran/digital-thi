@@ -62,3 +62,13 @@ export async function POST(
     );
   }
 }
+
+export async function GET(): Promise<NextResponse> {
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    await fetch(`${backendUrl}/health`);
+    return NextResponse.json({ status: 'ok' }, { status: 200 });
+  } catch {
+    return NextResponse.json({ status: 'unavailable' }, { status: 200 });
+  }
+}
