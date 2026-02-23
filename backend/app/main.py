@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down...")
 
 
-app = FastAPI(title="Digital Thi Backend API", lifespan=lifespan)
+app = FastAPI(title="Digital Tarmo Backend API", lifespan=lifespan)
 
 # Get allowed origins from environment or use defaults
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -48,7 +48,7 @@ app.add_middleware(
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Digital Thi Backend API", "status": "running"}
+    return {"message": "Digital Tarmo Backend API", "status": "running"}
 
 # Chat endpoint
 @app.post("/api/chat")

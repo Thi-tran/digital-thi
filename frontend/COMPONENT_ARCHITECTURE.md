@@ -1,4 +1,4 @@
-# Digital Thi Frontend - Component Architecture
+# Digital Me Frontend - Component Architecture
 
 This project follows **Airbnb JavaScript/React Guidelines** for frontend development with a focus on reusable components and clean architecture.
 

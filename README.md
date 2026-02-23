@@ -1,4 +1,4 @@
-# Digital Thi - Full Stack Setup with Docker
+# Digital Me - Full Stack Setup with Docker
 
 This project includes a Next.js frontend, FastAPI backend with Ollama embeddings, and PostgreSQL with pgvector for semantic search.
 
