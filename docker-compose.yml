@@ -27,7 +27,7 @@ services:
       - "3001:3001"
     environment:
       DATABASE_URL: postgresql://digitalthi:digitalthi_password@postgres:5432/digitalthi_db
-      OLLAMA_BASE_URL: https://ollama-service-545115523222.europe-west1.run.app
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
       FRONTEND_URL: http://localhost:3000
     depends_on:
       postgres:
