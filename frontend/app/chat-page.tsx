@@ -93,7 +93,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
 
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
-      <Header title="Digital Thi" />
+      <Header title="Digital Tarmo" />
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         <div className="space-y-4 px-6 py-8">
@@ -102,13 +102,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
             content={GREETING_MESSAGE}
             isUser={false}
             avatarSrc={personalAvatar}
-            avatarAlt="Digital Thi"
+            avatarAlt="Digital Tarmo"
             timestamp={new Date()}
           />
 
           {showInitialState ? (
             <div className="flex flex-1 items-center justify-center px-6 py-12">
-              <ChatSection title="Ask me anything about my CV" subtitle="Click a suggestion below or type your own question">
+              <ChatSection title="Ask me anything" subtitle="Click a suggestion below or type your own question">
                 <SuggestionGrid
                   suggestions={suggestions}
                   onSelect={handleSuggestionClick}
@@ -124,7 +124,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
                   content={message.content}
                   isUser={message.isUser}
                   avatarSrc={!message.isUser ? personalAvatar : undefined}
-                  avatarAlt="Digital Thi"
+                  avatarAlt="Digital Tarmo"
                   timestamp={message.timestamp}
                 />
               ))}

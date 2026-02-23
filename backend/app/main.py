@@ -26,16 +26,12 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Running database migrations...")
-    await run_migrations()
-    logger.info("Generating embeddings for CV sections...")
-    await generate_cv_embeddings()
     yield
     # Shutdown
     logger.info("Shutting down...")
 
 
-app = FastAPI(title="Digital Thi Backend API", lifespan=lifespan)
+app = FastAPI(title="Digital Tarmo Backend API", lifespan=lifespan)
 
 # Get allowed origins from environment or use defaults
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -52,7 +48,7 @@ app.add_middleware(
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Digital Thi Backend API", "status": "running"}
+    return {"message": "Digital Tarmo Backend API", "status": "running"}
 
 # Chat endpoint
 @app.post("/api/chat")
@@ -67,6 +63,10 @@ async def add_cv_section(request, db: AsyncSession = Depends(get_db)):
 @app.get("/api/cv-sections")
 async def get_cv_sections(db: AsyncSession = Depends(get_db)):
     return await get_cv_sections_endpoint(db)
+
+@app.post("/api/run-migrations")
+async def run_migrations_endpoint(db: AsyncSession = Depends(get_db)):
+    return await run_migrations(db)
 
 @app.post("/api/cv-sections/generate-embeddings")
 async def generate_embeddings(db: AsyncSession = Depends(get_db)):

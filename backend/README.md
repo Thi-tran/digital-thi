@@ -1,4 +1,4 @@
-# Digital Thi Backend
+# Digital Tarmo Backend
 
 Python FastAPI backend service that provides embeddings using Ollama's nomic-embed-text model.
 
