@@ -20,7 +20,7 @@ async def upgrade(connection):
         INSERT INTO cv_sections (section_type, content, embedding, metadata)
         VALUES (
             'CONTACT',
-            'Name: Thi Tran. Email: thi.tran.fi@gmail.com. Location: Helsinki, Finland. Phone: +358 50 470 4813.',
+            'Email: thi.tran.fi@gmail.com. Location: Helsinki, Finland. Phone: +358 50 470 4813.',
             NULL,
             NULL
         )
