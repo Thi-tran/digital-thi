@@ -32,7 +32,7 @@ async def upgrade(connection):
         },
         {
             "section_type": "EDUCATION",
-            "content": "Master of Software and Service Engineering from Aalto University (last year). GPA: 4/5.0."
+            "content": "Final year of Master of Software and Service Engineering from Aalto University (last year). GPA: 4/5.0."
         },
 
         {
