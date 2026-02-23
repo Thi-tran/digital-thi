@@ -68,6 +68,8 @@ export const Message: React.FC<MessageProps> = ({
     ? timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
 
+  const cleanContent = content.replace(/^"+|"+$/g, '').trim();
+
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {!isUser && avatarSrc && <Avatar alt={avatarAlt} size="md" />}
@@ -81,7 +83,7 @@ export const Message: React.FC<MessageProps> = ({
         >
           <div className="space-y-2">
             <ul className="list-disc space-y-1">
-              {parseContent(content)}
+              {parseContent(cleanContent)}
             </ul>
           </div>
         </div>
