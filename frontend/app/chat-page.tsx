@@ -29,6 +29,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
   };
 
   useEffect(() => {
+    fetch('/api/chat', { method: 'GET' }).catch(() => { });
+  }, []);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
