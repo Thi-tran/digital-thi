@@ -32,15 +32,11 @@ async def upgrade(connection):
         },
         {
             "section_type": "EDUCATION",
-            "content": "Final year of Master of Software and Service Engineering from Aalto University (last year). GPA: 4/5.0."
+            "content": "Master of Software and Service Engineering from Aalto University (last year). GPA: 4/5.0."
         },
         {
             "section_type": "PROJECTS",
             "content": "AI-Powered CV Chat Bot: Built a semantic search system using embeddings to answer questions about CV information. Stack: FastAPI, PostgreSQL with pgvector, Next.js, Ollama LLM."
-        },
-        {
-            "section_type": "CONTACTS",
-            "content": "Email: thi.tran.fi@gmail.com. Phone: +358 50 470 4813."
         },
     ]
     

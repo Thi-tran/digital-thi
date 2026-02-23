@@ -10,11 +10,18 @@ This project includes a Next.js frontend, FastAPI backend with Ollama embeddings
    brew install ollama
    ollama serve
    ollama pull nomic-embed-text
+   ollama pull gemma3
    ```
 
 ## Quick Start
 
-### 1. Start backend services with Docker Compose
+### 1. Start Ollama and pull models
+
+```bash
+# Start Ollama on your host machine
+ollama serve
+
+### 2. Start backend services with Docker Compose
 
 ```bash
 # From the project root
@@ -25,7 +32,7 @@ This will start:
 - PostgreSQL with pgvector (port 5432)
 - FastAPI backend (port 3001)
 
-### 2. Start the frontend (separately)
+### 3. Start the frontend (separately)
 
 ```bash
 cd frontend

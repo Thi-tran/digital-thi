@@ -113,19 +113,18 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Previous conversation:
                 {history_context}
                 
-                The user asked: "{request.message}"
+                The user asked: {request.message}
 
                 Here's the relevant information from the CV:
                 {context}
 
                 Please provide a helpful, professional, and engaging response that answers their question based on this information. 
                 Remember the context of previous messages if relevant.
-                Add a touch of personality and professionalism to make the response feel natural and friendly.
-                Keep the response concise but informative.
-                
+                Add a touch of personality and professionalism to make the response feel natural and friendly.               
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
                 Don't always start the answer with "Okay" or "Sure", just provide the answer directly. Avoid generic phrases and focus on providing specific information from the CV that addresses the user's question.
-
+                Keep the answer short, under 500 characters, and make it engaging. If the question is about a specific skill or experience, highlight that information clearly in the response. If the question is more general, provide a summary of relevant CV sections that could help answer it.
+                Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
                 At the end of the message, try to ask more questions to understand the job description from the recruiter. For example, what kinds of responsibilities or skills are most important for this role? The goal is to understand their needs to fit with my experience too.
                 """
 
