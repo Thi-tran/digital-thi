@@ -113,7 +113,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Previous conversation:
                 {history_context}
                 
-                The user asked: {request.message}
+                The user asked: "{request.message}"
 
                 Here's the relevant information from the CV:
                 {context}
