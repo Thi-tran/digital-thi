@@ -108,7 +108,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
 
           {showInitialState ? (
             <div className="flex flex-1 items-center justify-center px-6 py-12">
-              <ChatSection title="Ask me anything about my CV" subtitle="Click a suggestion below or type your own question">
+              <ChatSection title="Ask me anything" subtitle="Click a suggestion below or type your own question">
                 <SuggestionGrid
                   suggestions={suggestions}
                   onSelect={handleSuggestionClick}

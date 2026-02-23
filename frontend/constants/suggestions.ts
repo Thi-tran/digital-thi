@@ -24,4 +24,4 @@ export const INITIAL_SUGGESTIONS: SuggestionButton[] = [
 ];
 
 export const GREETING_MESSAGE =
-  'Hi, welcome to my digital version! Feel free to ask anything about myself :)';
+  'Hi, welcome to my digital version! Feel free to ask anything about me :)';
