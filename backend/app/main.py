@@ -65,8 +65,8 @@ async def get_cv_sections(db: AsyncSession = Depends(get_db)):
     return await get_cv_sections_endpoint(db)
 
 @app.post("/api/run-migrations")
-async def run_migrations_endpoint(db: AsyncSession = Depends(get_db)):
-    return await run_migrations(db)
+async def run_migrations_endpoint():
+    return await run_migrations()
 
 @app.post("/api/cv-sections/generate-embeddings")
 async def generate_embeddings(db: AsyncSession = Depends(get_db)):
