@@ -1,9 +1,9 @@
 docker build --platform linux/amd64 -t europe-west1-docker.pkg.dev/digital-tarmo/digitaltarmo-repo/backend:latest ./backend
 docker push europe-west1-docker.pkg.dev/digital-tarmo/digitaltarmo-repo/backend:latest
-gcloud run deploy digital-tarmo-backend \                                                                                  
+gcloud run deploy digital-tarmo-backend \
   --image=europe-west1-docker.pkg.dev/digital-tarmo/digitaltarmo-repo/backend:latest \
-  --region=europe-west1 \   
-  --platform=managed \                                                                
+  --region=europe-west1 \
+  --platform=managed \
   --service-account=digital-tarmo-compute@digital-tarmo.iam.gserviceaccount.com \
   --vpc-connector=digital-tarmo \
   --vpc-egress=private-ranges-only \
