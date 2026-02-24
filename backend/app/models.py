@@ -25,7 +25,6 @@ class SearchResult(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    relevant_sections: List[SearchResult]
 
 
 class AddCVSectionRequest(BaseModel):
