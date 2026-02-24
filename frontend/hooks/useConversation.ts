@@ -8,6 +8,7 @@ interface UseConversationReturn {
   addMessage: (content: string, isUser: boolean) => void;
   updateLastMessage: (content: string) => void;
   isLoading: boolean;
+  isStreaming: boolean;
   setIsLoading: (loading: boolean) => void;
   sessionId: string;
   streamMessage: (message: string, sessionId: string) => Promise<void>;
@@ -16,7 +17,8 @@ interface UseConversationReturn {
 export const useConversation = (): UseConversationReturn => {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');  
 
   // Initialize session ID on mount
   useEffect(() => {
@@ -72,6 +74,7 @@ export const useConversation = (): UseConversationReturn => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let streamedContent = '';
+      let firstChunk = true;
 
       // Add initial empty message for streaming
       addMessage('', false);
@@ -83,11 +86,18 @@ export const useConversation = (): UseConversationReturn => {
         const chunk = decoder.decode(value, { stream: true });
         streamedContent += chunk;
 
+        if (firstChunk) {
+          setIsStreaming(true);
+          firstChunk = false;
+        }
+
         // Update the last message with accumulated content
         updateLastMessage(streamedContent);
       }
+      setIsStreaming(false);
     } catch (error) {
       console.error('Error streaming chat response:', error);
+      setIsStreaming(false);
       addMessage('Sorry, there was an error processing your request. Please try again.', false);
     }
   }, [addMessage, updateLastMessage]);
@@ -97,6 +107,7 @@ export const useConversation = (): UseConversationReturn => {
     addMessage,
     updateLastMessage,
     isLoading,
+    isStreaming,
     setIsLoading,
     sessionId,
     streamMessage,
