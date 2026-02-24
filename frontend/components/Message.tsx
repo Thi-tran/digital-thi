@@ -68,7 +68,7 @@ export const Message: React.FC<MessageProps> = ({
     ? timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
 
-  const cleanContent = content.replace(/^"+|"+$/g, '').trim();
+  const cleanContent = content.replace(/^["'”]+|["'”]+$/g, '').trim();
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
