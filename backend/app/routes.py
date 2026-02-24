@@ -4,6 +4,7 @@ API routes and endpoints
 import logging
 import os
 from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 import ollama
@@ -23,7 +24,7 @@ ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
 
 async def chat_endpoint(request: ChatRequest, db: AsyncSession):
     """
-    Process chat message: generate embeddings, search similar CV sections, and return response.
+    Process chat message: generate embeddings, search similar CV sections, and stream response.
     """
     try:
         if not request.message:
@@ -103,13 +104,17 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 history_lines.append(f"Assistant: {msg.bot_response}")
             history_context = "\n".join(history_lines) + "\n\n" if history_lines else ""
         
-        # Generate response based on relevant sections using Ollama
-        if relevant_sections:
-            # Build context from relevant sections
-            context = "\n".join([f"- {s.content}" for s in relevant_sections])
+        # Create streaming response generator
+        async def stream_generator():
+            response_text = ""
             
-            # Create a prompt for Ollama to generate a personalized response
-            prompt = f"""You are helping to answer questions about my CV. 
+            # Generate response based on relevant sections using Ollama
+            if relevant_sections:
+                # Build context from relevant sections
+                context = "\n".join([f"- {s.content}" for s in relevant_sections])
+                
+                # Create a prompt for Ollama to generate a personalized response
+                prompt = f"""You are helping to answer questions about my CV. 
                 Previous conversation:
                 {history_context}
                 
@@ -128,39 +133,48 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 At the end of the message, try to ask more questions to understand the job description from the recruiter. For example, what kinds of responsibilities or skills are most important for this role? The goal is to understand their needs to fit with my experience too.
                 """
 
-            logger.info(f"Generating response with Ollama...")
+                logger.info(f"Generating response with Ollama (streaming)...")
+                try:
+                    ollama_response = ollamaClient.generate(
+                        model="gemma3",
+                        prompt=prompt,
+                        stream=True
+                    )
+                    
+                    # Stream the response chunks
+                    for chunk in ollama_response:
+                        chunk_text = chunk.get("response", "")
+                        response_text += chunk_text
+                        yield chunk_text
+                        # Flush to ensure streaming happens
+                        await __import__('asyncio').sleep(0)
+                    
+                    print(f"Generated response: {response_text[:50]}...")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to generate response with Ollama: {str(e)}")
+                    fallback = f"Based on my CV, here's what I found:\n{context}"
+                    response_text = fallback
+                    yield fallback
+            else:
+                fallback = "I couldn't find specific information about that in my CV. Feel free to ask me about my skills, experience, education, or projects!"
+                response_text = fallback
+                yield fallback
+            
+            # Store chat history with session_id after streaming completes
             try:
-                ollama_response = ollamaClient.generate(
-                    model="gemma3",
-                    prompt=prompt,
-                    stream=False
+                chat_entry = ChatHistory(
+                    session_id=request.session_id,
+                    user_message=request.message,
+                    bot_response=response_text,
+                    user_embedding=embeddings
                 )
-                response_text = ollama_response.get("response", "").strip()
-                print(f"Generated response: {response_text[:50]}...")
-                
-                if not response_text:
-                    logger.warning(f"Failed to generate response with Ollama")
-                    response_text = f"Based on my CV, here's what I found:\n{context}"
+                db.add(chat_entry)
+                await db.commit()
             except Exception as e:
-                logger.warning(f"Failed to generate response with Ollama: {str(e)}")
-                response_text = f"Based on my CV, here's what I found:\n{context}"
-        else:
-            response_text = "I couldn't find specific information about that in my CV. Feel free to ask me about my skills, experience, education, or projects!"
-
-        # Store chat history with session_id
-        chat_entry = ChatHistory(
-            session_id=request.session_id,
-            user_message=request.message,
-            bot_response=response_text,
-            user_embedding=embeddings
-        )
-        db.add(chat_entry)
-        await db.commit()
-
-        return ChatResponse(
-            response=response_text,
-            relevant_sections=relevant_sections
-        )
+                logger.error(f"Failed to save chat history: {str(e)}")
+        
+        return StreamingResponse(stream_generator(), media_type="text/plain")
 
     except ollama.ResponseError as e:
         logger.error(f"Ollama error: {str(e)}")

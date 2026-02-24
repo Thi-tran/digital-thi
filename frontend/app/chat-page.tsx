@@ -19,7 +19,7 @@ interface ChatPageProps {
 }
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessageSend }) => {
-  const { messages, addMessage, isLoading, setIsLoading, sessionId } = useConversation();
+  const { messages, addMessage, isLoading, setIsLoading, sessionId, streamMessage } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -36,30 +36,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (message: string) => {
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message, session_id: sessionId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-      return data.data.response || 'Sorry, I could not process your request.';
-    } catch (error) {
-      console.error('Error calling chat API:', error);
-      return 'Sorry, there was an error processing your request. Please try again.';
-    }
-  };
-
   const handleSuggestionClick = async (suggestion: SuggestionButton) => {
-    if (isLoading) return;
+    if (isLoading || !sessionId) return;
 
     addMessage(suggestion.text, true);
     setIsLoading(true);
@@ -69,13 +47,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
       onSuggestionClick(suggestion);
     }
 
-    const response = await sendMessage(suggestion.text);
-    addMessage(response, false);
+    await streamMessage(suggestion.text, sessionId);
     setIsLoading(false);
   };
 
   const handleInputSubmit = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || !sessionId) return;
 
     addMessage(inputValue, true);
     setIsLoading(true);
@@ -88,8 +65,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
     const userInput = inputValue;
     setInputValue('');
 
-    const response = await sendMessage(userInput);
-    addMessage(response, false);
+    await streamMessage(userInput, sessionId);
     setIsLoading(false);
   };
 
