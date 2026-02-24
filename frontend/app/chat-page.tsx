@@ -13,13 +13,8 @@ import { INITIAL_SUGGESTIONS, GREETING_MESSAGE } from '@/constants/suggestions';
 import { SuggestionButton } from '@/types';
 import { personalAvatar } from '@/components/Avatar';
 
-interface ChatPageProps {
-  onSuggestionClick?: (suggestion: SuggestionButton) => void;
-  onMessageSend?: (message: string) => void;
-}
-
-export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessageSend }) => {
-  const { messages, addMessage, isLoading, setIsLoading, sessionId, streamMessage } = useConversation();
+export const ChatPage: React.FC = () => {
+  const { messages, addMessage, isLoading, isStreaming, setIsLoading, sessionId, streamMessage } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,10 +38,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
     setIsLoading(true);
     setSuggestions([]); // Hide suggestions after first interaction
 
-    if (onSuggestionClick) {
-      onSuggestionClick(suggestion);
-    }
-
     await streamMessage(suggestion.text, sessionId);
     setIsLoading(false);
   };
@@ -57,10 +48,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
     addMessage(inputValue, true);
     setIsLoading(true);
     setSuggestions([]); // Hide suggestions after first interaction
-
-    if (onMessageSend) {
-      onMessageSend(inputValue);
-    }
 
     const userInput = inputValue;
     setInputValue('');
@@ -109,7 +96,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onSuggestionClick, onMessage
                 />
               ))}
 
-              {isLoading && (
+                {isLoading && !isStreaming && (
                 <div className="flex gap-3">
                   <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-4 py-2.5 dark:bg-zinc-800">
                     <div className="flex gap-1">
