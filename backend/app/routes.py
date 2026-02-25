@@ -8,6 +8,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 import ollama
+import asyncio
+import httpx
 
 from app.database import CVSection, ChatHistory
 from app.models import (
@@ -337,3 +339,23 @@ def health_check():
         return {"status": "healthy", "ollama": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+
+async def ping_ollama():
+    """Ping Ollama to wake it from cold start. Retries until reachable."""
+
+    max_retries = 10
+    retry_delay = 3  # seconds
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+                if response.status_code == 200:
+                    logger.info(f"✅ Ollama is awake (attempt {attempt})")
+                    return
+        except Exception as e:
+            logger.warning(f"⏳ Ollama not ready yet (attempt {attempt}/{max_retries}): {e}")
+        await asyncio.sleep(retry_delay)
+
+    logger.error("❌ Ollama did not respond after multiple retries")
