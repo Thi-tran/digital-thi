@@ -119,11 +119,10 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 # 60% chance: ask a contextual question related to the response
                 # 40% chance: pivot to another topic
                 if random.random() < 0.6:
-                    followup_question = "relevant follow-up question directly related to the job description, technologies and the role itself"
+                    followup_question = "ask follow-up question directly related to the job description, technologies and the role the user is applying for, based on the CV information above. Make it a natural question that encourages the user to share more about their experience or skills relevant to the job."
                 else:
                     pivot_questions = [
-                        "Which company is this opportunity with?",
-                        "What are the next steps in your recruitment process?",
+                        "Can I ask which company is this opportunity with?",
                         "Would you like to know more about my background or education?",
                         "Curious about my skillset or a fun fact about me?",
                     ]
@@ -147,7 +146,8 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
                 Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
                 
-                End your response with one follow-up question. If the instruction says CONTEXTUAL, craft a short, natural question closely related to the user's question and the CV info above. Otherwise, use exactly this question: {followup_question}
+                End your response with one follow-up question {followup_question}
+                Do not repeat the question that already asked in previous conversation.
                 """
 
                 logger.info(f"Generating response with Ollama (streaming)...")
