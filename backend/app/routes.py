@@ -3,11 +3,14 @@ API routes and endpoints
 """
 import logging
 import os
+import random
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 import ollama
+import asyncio
+import httpx
 
 from app.database import CVSection, ChatHistory
 from app.models import (
@@ -113,8 +116,21 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 # Build context from relevant sections
                 context = "\n".join([f"- {s.content}" for s in relevant_sections])
                 
+                # 60% chance: ask a contextual question related to the response
+                # 40% chance: pivot to another topic
+                if random.random() < 0.6:
+                    followup_question = "ask follow-up question directly related to the job description, technologies and the role the user is applying for, based on the CV information above. Make it a natural question that encourages the user to share more about their experience or skills relevant to the job."
+                else:
+                    pivot_questions = [
+                        "Can I ask which company is this opportunity with?",
+                        "Would you like to know more about my background or education?",
+                        "Curious about my skillset or a fun fact about me?",
+                    ]
+                    followup_question = random.choice(pivot_questions)
+
                 # Create a prompt for Ollama to generate a personalized response
-                prompt = f"""You are me - a software engineer answering to the recuiter's questions based on my CV, which is provided below.: 
+                prompt = f"""Act as me answering questions about a my CV. 
+                Answer directly and naturally. Do NOT include any preamble, meta-commentary, or phrases like "Okay, here's a response..." or "Based on the CV..." at the start. Just answer.
                 
                 The user asked: "{request.message}"
 
@@ -124,18 +140,14 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Previous conversation:
                 {history_context}
 
-                Please provide a helpful, professional, and engaging response that answers their question based on this information. 
+                Provide a helpful, professional, and engaging response that answers their question based on this information. 
                 Remember the context of previous messages if relevant.
                 Add a touch of personality and professionalism to make the response feel natural and friendly.               
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
-                Don't always start the answer with "Okay" or "Sure", just provide the answer directly. Avoid generic phrases and focus on providing specific information from the CV that addresses the user's question.
-                Keep the answer short, under 500 characters, and make it engaging. If the question is about a specific skill or experience, highlight that information clearly in the response. If the question is more general, provide a summary of relevant CV sections that could help answer it.
                 Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
-                At the end of the message, ask one of these questions:
-                    - Clarify the job description from the recruiter. 
-                    - Ask about the company name.
-                    - Ask about the next steps in the recruitment process.
-                    - Switch to other topics (background, education, skillset or funfact).
+                
+                End your response with one follow-up question {followup_question}
+                Do not repeat the question that already asked in previous conversation.
                 """
 
                 logger.info(f"Generating response with Ollama (streaming)...")
@@ -337,3 +349,23 @@ def health_check():
         return {"status": "healthy", "ollama": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
+
+
+async def ping_ollama():
+    """Ping Ollama to wake it from cold start. Retries until reachable."""
+
+    max_retries = 10
+    retry_delay = 3  # seconds
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
+                if response.status_code == 200:
+                    logger.info(f"✅ Ollama is awake (attempt {attempt})")
+                    return
+        except Exception as e:
+            logger.warning(f"⏳ Ollama not ready yet (attempt {attempt}/{max_retries}): {e}")
+        await asyncio.sleep(retry_delay)
+
+    logger.error("❌ Ollama did not respond after multiple retries")

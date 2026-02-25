@@ -15,7 +15,8 @@ from app.routes import (
     add_cv_section_endpoint,
     get_cv_sections_endpoint,
     generate_embeddings_endpoint,
-    health_check
+    health_check,
+    ping_ollama
 )
 
 # Configure logging
@@ -25,7 +26,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup - ping Ollama to wake it from cold start
+    logger.info("🔥 Pinging Ollama to wake from cold start...")
+    await ping_ollama()
     yield
     # Shutdown
     logger.info("Shutting down...")
