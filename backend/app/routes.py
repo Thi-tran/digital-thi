@@ -114,7 +114,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 context = "\n".join([f"- {s.content}" for s in relevant_sections])
                 
                 # Create a prompt for Ollama to generate a personalized response
-                prompt = f"""You are me - a software engineer answering to the recuiter's questions based on my CV, which is provided below.: 
+                prompt = f"""Answer question about my CV: 
                 
                 The user asked: "{request.message}"
 
@@ -128,11 +128,11 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Remember the context of previous messages if relevant.
                 Add a touch of personality and professionalism to make the response feel natural and friendly.               
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
-                Don't always start the answer with "Okay" or "Sure", just provide the answer directly. Avoid generic phrases and focus on providing specific information from the CV that addresses the user's question.
                 Keep the answer short, under 500 characters, and make it engaging. If the question is about a specific skill or experience, highlight that information clearly in the response. If the question is more general, provide a summary of relevant CV sections that could help answer it.
                 Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
-                At the end of the message, ask one of these questions:
-                    - Clarify the job description from the recruiter. 
+                
+                At the end of the message, ask one of these questions. Make sure that the question changes every time and is relevant to the user's original question and the CV information provided:
+                    - Clarify the technology and responsibilities from the role. 
                     - Ask about the company name.
                     - Ask about the next steps in the recruitment process.
                     - Switch to other topics (background, education, skillset or funfact).
