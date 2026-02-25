@@ -3,6 +3,7 @@ API routes and endpoints
 """
 import logging
 import os
+import random
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -115,8 +116,22 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 # Build context from relevant sections
                 context = "\n".join([f"- {s.content}" for s in relevant_sections])
                 
+                # 60% chance: ask a contextual question related to the response
+                # 40% chance: pivot to another topic
+                if random.random() < 0.6:
+                    followup_question = "relevant follow-up question directly related to the job description, technologies and the role itself"
+                else:
+                    pivot_questions = [
+                        "Which company is this opportunity with?",
+                        "What are the next steps in your recruitment process?",
+                        "Would you like to know more about my background or education?",
+                        "Curious about my skillset or a fun fact about me?",
+                    ]
+                    followup_question = random.choice(pivot_questions)
+
                 # Create a prompt for Ollama to generate a personalized response
-                prompt = f"""Answer question about my CV: 
+                prompt = f"""Act as me answering questions about a my CV. 
+                Answer directly and naturally. Do NOT include any preamble, meta-commentary, or phrases like "Okay, here's a response..." or "Based on the CV..." at the start. Just answer.
                 
                 The user asked: "{request.message}"
 
@@ -126,18 +141,13 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                 Previous conversation:
                 {history_context}
 
-                Please provide a helpful, professional, and engaging response that answers their question based on this information. 
+                Provide a helpful, professional, and engaging response that answers their question based on this information. 
                 Remember the context of previous messages if relevant.
                 Add a touch of personality and professionalism to make the response feel natural and friendly.               
                 Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
-                Keep the answer short, under 500 characters, and make it engaging. If the question is about a specific skill or experience, highlight that information clearly in the response. If the question is more general, provide a summary of relevant CV sections that could help answer it.
                 Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
                 
-                At the end of the message, ask one of these questions. Make sure that the question changes every time and is relevant to the user's original question and the CV information provided:
-                    - Clarify the technology and responsibilities from the role. 
-                    - Ask about the company name.
-                    - Ask about the next steps in the recruitment process.
-                    - Switch to other topics (background, education, skillset or funfact).
+                End your response with one follow-up question. If the instruction says CONTEXTUAL, craft a short, natural question closely related to the user's question and the CV info above. Otherwise, use exactly this question: {followup_question}
                 """
 
                 logger.info(f"Generating response with Ollama (streaming)...")
