@@ -3,19 +3,28 @@ API routes and endpoints
 """
 import logging
 import os
+import asyncio
 import random
+import httpx
+import ollama
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
-import ollama
-import asyncio
-import httpx
+from sqlalchemy import select
 
-from app.database import CVSection, ChatHistory
+from app.database import CVSection
 from app.models import (
     ChatRequest, ChatResponse, SearchResult,
     AddCVSectionRequest, AddCVSectionResponse
+)
+from app.services import (
+    generate_embedding,
+    search_similar_sections,
+    fetch_recent_history,
+    fetch_cached_response,
+    save_chat_entry,
+    build_chat_prompt,
+    stream_chat_response,
 )
 
 logger = logging.getLogger(__name__)
@@ -27,170 +36,75 @@ ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
 
 async def chat_endpoint(request: ChatRequest, db: AsyncSession):
     """
-    Process chat message: generate embeddings, search similar CV sections, and stream response.
+    Process a chat message by orchestrating the following steps:
+      1. Validate the request.
+      2. Generate an embedding for the user message.
+      3. Search for relevant CV sections via vector similarity.
+      4. Fetch recent conversation history.
+      5. Build the LLM prompt.
+      6. Stream the LLM response back to the client.
+      7. Persist the exchange to the chat history table.
     """
     try:
         if not request.message:
             raise HTTPException(status_code=400, detail="Message cannot be empty")
-        
+
         if not request.session_id:
             raise HTTPException(status_code=400, detail="Session ID cannot be empty")
 
-        logger.info(f"Processing message for session {request.session_id}: {request.message[:50]}...")
-        print(f"Received message: {request.message[:50]}... {request.session_id}")
-        
-        # Generate embeddings for the user message
-        response = ollamaClient.embed(
-            model="nomic-embed-text",
-            input=request.message
+        logger.info(
+            f"Processing message for session {request.session_id}: "
+            f"{request.message[:50]}..."
         )
 
-        embeddings = response.get("embeddings", [[]])[0]
-        print(f"Generated embedding: {embeddings[:5]}... (total {len(embeddings)} dimensions)")
-        
-        if not embeddings:
-            raise HTTPException(
-                status_code=500, 
-                detail="Failed to generate embeddings"
-            )
+        # Fetch history first – used both as a cache gate and later for the prompt
+        history_context = await fetch_recent_history(db, request.session_id)
 
-        logger.info(f"Generated embedding with {len(embeddings)} dimensions")
+        # Only check cache for the very first message in a session.
+        # By the time the user sends a second message, Ollama is already warm
+        # and cached responses would carry the wrong context anyway.
+        if not history_context:
+            cached_response = await fetch_cached_response(db, request.message)
+            if cached_response:
+                logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
 
-        # Search for similar CV sections using vector similarity
-        query = text("""
-            SELECT 
-                content, 
-                section_type, 
-                metadata,
-                1 - (embedding <=> CAST(:embeddings AS vector)) as similarity
-            FROM cv_sections
-            WHERE embedding IS NOT NULL
-            ORDER BY similarity DESC
-            LIMIT 10
-        """)
-        
-        logger.info(f"Executing similarity search...")
-        result = await db.execute(query, {"embeddings": str(embeddings)})
-        rows = result.fetchall()
-        logger.info(f"Query returned {len(rows)} rows")
-        print(f"Found {len(rows)} similar sections")
-        
-        relevant_sections = [
-            SearchResult(
-                content=row.content,
-                section_type=row.section_type,
-                similarity=float(row.similarity),
-                metadata=row.metadata
-            )
-            for row in rows
-        ]
-        print(f"Top relevant section: {relevant_sections[0].content[:50]}... with similarity {relevant_sections[0].similarity:.4f}" if relevant_sections else "No relevant sections found")
-        
-        # Fetch previous chat history for this session
-        chat_history_query = text("""
-            SELECT 
-                *
-            FROM chat_history
-            WHERE session_id = :session_id
-            ORDER BY created_at ASC
-        """)
+                async def cached_stream_generator():
+                    await asyncio.sleep(random.uniform(1.0, 2.0))
+                    words = cached_response.split(" ")
+                    for i, word in enumerate(words):
+                        chunk = word if i == 0 else " " + word
+                        yield chunk
+                        await asyncio.sleep(0.03)
 
-        result = await db.execute(chat_history_query, {"session_id": request.session_id})
-        chat_history = result.fetchall()
+                    await save_chat_entry(
+                        db,
+                        session_id=request.session_id,
+                        user_message=request.message,
+                        bot_response=cached_response,
+                        user_embedding=[],
+                    )
 
-        # Build conversation context from history
-        history_context = ""
-        if chat_history:
-            history_lines = []
-            for msg in chat_history[-5:]:  # Include last 5 messages for context
-                history_lines.append(f"User: {msg.user_message}")
-                history_lines.append(f"Assistant: {msg.bot_response}")
-            history_context = "\n".join(history_lines) + "\n\n" if history_lines else ""
-        
-        # Create streaming response generator
+                return StreamingResponse(cached_stream_generator(), media_type="text/plain")
+
+        embeddings = generate_embedding(request.message)
+
+        relevant_sections = await search_similar_sections(db, embeddings)
+        prompt = build_chat_prompt(request.message, relevant_sections, history_context)
+
         async def stream_generator():
             response_text = ""
-            
-            # Generate response based on relevant sections using Ollama
-            if relevant_sections:
-                # Build context from relevant sections
-                context = "\n".join([f"- {s.content}" for s in relevant_sections])
-                
-                # 60% chance: ask a contextual question related to the response
-                # 40% chance: pivot to another topic
-                if random.random() < 0.6:
-                    followup_question = "ask follow-up question directly related to the job description, technologies and the role the user is applying for, based on the CV information above. Make it a natural question that encourages the user to share more about their experience or skills relevant to the job."
-                else:
-                    pivot_questions = [
-                        "Can I ask which company is this opportunity with?",
-                        "Would you like to know more about my background or education?",
-                        "Curious about my skillset or a fun fact about me?",
-                    ]
-                    followup_question = random.choice(pivot_questions)
+            async for chunk in stream_chat_response(prompt, relevant_sections):
+                response_text += chunk
+                yield chunk
 
-                # Create a prompt for Ollama to generate a personalized response
-                prompt = f"""Act as me answering questions about a my CV. 
-                Answer directly and naturally. Do NOT include any preamble, meta-commentary, or phrases like "Okay, here's a response..." or "Based on the CV..." at the start. Just answer.
-                
-                The user asked: "{request.message}"
+            await save_chat_entry(
+                db,
+                session_id=request.session_id,
+                user_message=request.message,
+                bot_response=response_text,
+                user_embedding=embeddings,
+            )
 
-                Here's the relevant information from the CV:
-                {context}
-
-                Previous conversation:
-                {history_context}
-
-                Provide a helpful, professional, and engaging response that answers their question based on this information. 
-                Remember the context of previous messages if relevant.
-                Add a touch of personality and professionalism to make the response feel natural and friendly.               
-                Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
-                Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
-                
-                End your response with one follow-up question {followup_question}
-                Do not repeat the question that already asked in previous conversation.
-                """
-
-                logger.info(f"Generating response with Ollama (streaming)...")
-                try:
-                    ollama_response = ollamaClient.generate(
-                        model="gemma3",
-                        prompt=prompt,
-                        stream=True
-                    )
-                    
-                    # Stream the response chunks
-                    for chunk in ollama_response:
-                        chunk_text = chunk.get("response", "")
-                        response_text += chunk_text
-                        yield chunk_text
-                        # Flush to ensure streaming happens
-                        await __import__('asyncio').sleep(0)
-                    
-                    print(f"Generated response: {response_text[:50]}...")
-                    
-                except Exception as e:
-                    logger.warning(f"Failed to generate response with Ollama: {str(e)}")
-                    fallback = f"Based on my CV, here's what I found:\n{context}"
-                    response_text = fallback
-                    yield fallback
-            else:
-                fallback = "I couldn't find specific information about that in my CV. Feel free to ask me about my skills, experience, education, or projects!"
-                response_text = fallback
-                yield fallback
-            
-            # Store chat history with session_id after streaming completes
-            try:
-                chat_entry = ChatHistory(
-                    session_id=request.session_id,
-                    user_message=request.message,
-                    bot_response=response_text,
-                    user_embedding=embeddings
-                )
-                db.add(chat_entry)
-                await db.commit()
-            except Exception as e:
-                logger.error(f"Failed to save chat history: {str(e)}")
-        
         return StreamingResponse(stream_generator(), media_type="text/plain")
 
     except ollama.ResponseError as e:
@@ -352,18 +266,24 @@ def health_check():
 
 
 async def ping_ollama():
-    """Ping Ollama to wake it from cold start. Retries until reachable."""
-
+    """
+    Warm up Ollama by sending a real inference request so the model is
+    loaded into memory before the first user message arrives.
+    Retries until the request succeeds.
+    """
     max_retries = 10
     retry_delay = 3  # seconds
 
     for attempt in range(1, max_retries + 1):
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{OLLAMA_BASE_URL}/api/tags")
-                if response.status_code == 200:
-                    logger.info(f"✅ Ollama is awake (attempt {attempt})")
-                    return
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                logger.info(f"🔥 Warming up Ollama (attempt {attempt}/{max_retries})...")
+                await client.post(
+                    f"{OLLAMA_BASE_URL}/api/generate",
+                    json={"model": "gemma3", "prompt": "hi", "stream": False},
+                )
+                logger.info("✅ Ollama model is warm and ready")
+                return
         except Exception as e:
             logger.warning(f"⏳ Ollama not ready yet (attempt {attempt}/{max_retries}): {e}")
         await asyncio.sleep(retry_delay)
