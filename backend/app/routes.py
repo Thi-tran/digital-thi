@@ -4,6 +4,7 @@ API routes and endpoints
 import logging
 import os
 import asyncio
+import random
 import httpx
 import ollama
 from fastapi import HTTPException
@@ -56,32 +57,38 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
             f"{request.message[:50]}..."
         )
 
-        # Check text cache before doing any expensive work
-        cached_response = await fetch_cached_response(db, request.message)
-        if cached_response:
-            logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
+        # Fetch history first – used both as a cache gate and later for the prompt
+        history_context = await fetch_recent_history(db, request.session_id)
 
-            async def cached_stream_generator():
-                words = cached_response.split(" ")
-                for i, word in enumerate(words):
-                    chunk = word if i == 0 else " " + word
-                    yield chunk
-                    await asyncio.sleep(0.03)
+        # Only check cache for the very first message in a session.
+        # By the time the user sends a second message, Ollama is already warm
+        # and cached responses would carry the wrong context anyway.
+        if not history_context:
+            cached_response = await fetch_cached_response(db, request.message)
+            if cached_response:
+                logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
 
-                await save_chat_entry(
-                    db,
-                    session_id=request.session_id,
-                    user_message=request.message,
-                    bot_response=cached_response,
-                    user_embedding=[],
-                )
+                async def cached_stream_generator():
+                    await asyncio.sleep(random.uniform(1.0, 2.0))
+                    words = cached_response.split(" ")
+                    for i, word in enumerate(words):
+                        chunk = word if i == 0 else " " + word
+                        yield chunk
+                        await asyncio.sleep(0.03)
 
-            return StreamingResponse(cached_stream_generator(), media_type="text/plain")
+                    await save_chat_entry(
+                        db,
+                        session_id=request.session_id,
+                        user_message=request.message,
+                        bot_response=cached_response,
+                        user_embedding=[],
+                    )
+
+                return StreamingResponse(cached_stream_generator(), media_type="text/plain")
 
         embeddings = generate_embedding(request.message)
 
         relevant_sections = await search_similar_sections(db, embeddings)
-        history_context = await fetch_recent_history(db, request.session_id)
         prompt = build_chat_prompt(request.message, relevant_sections, history_context)
 
         async def stream_generator():
