@@ -16,6 +16,14 @@ _HISTORY_QUERY = text("""
     ORDER BY created_at ASC
 """)
 
+_CACHE_TEXT_QUERY = text("""
+    SELECT bot_response
+    FROM chat_history
+    WHERE LOWER(user_message) = LOWER(:user_message)
+    ORDER BY created_at ASC
+    LIMIT 1
+""")
+
 
 async def fetch_recent_history(
     db: AsyncSession,
@@ -39,6 +47,30 @@ async def fetch_recent_history(
 
     logger.debug(f"Loaded {len(rows[-turns:])} history turns for session {session_id}")
     return "\n".join(lines) + "\n\n"
+
+
+async def fetch_cached_response(
+    db: AsyncSession,
+    user_message: str,
+) -> str:
+    """
+    Return the cached bot_response for the most recent entry whose
+    user_message matches *user_message* (case-insensitive).
+
+    Returns an empty string on a cache miss.
+    """
+    result = await db.execute(
+        _CACHE_TEXT_QUERY,
+        {"user_message": user_message},
+    )
+    row = result.fetchone()
+
+    if not row:
+        logger.debug("Cache miss for message: %s", user_message[:60])
+        return ""
+
+    logger.debug("Cache hit for message: %s", user_message[:60])
+    return row.bot_response
 
 
 async def save_chat_entry(

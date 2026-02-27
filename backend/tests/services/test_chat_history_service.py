@@ -5,7 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.chat_history_service import fetch_recent_history, save_chat_entry
+from app.services.chat_history_service import (
+    fetch_recent_history,
+    fetch_cached_response,
+    save_chat_entry,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -22,6 +26,15 @@ def _make_msg(user: str, bot: str) -> MagicMock:
 def _make_db(rows: list) -> AsyncMock:
     result = MagicMock()
     result.fetchall.return_value = rows
+    db = AsyncMock()
+    db.execute = AsyncMock(return_value=result)
+    return db
+
+
+def _make_db_one(row) -> AsyncMock:
+    """Mock db whose execute().fetchone() returns a single row (or None)."""
+    result = MagicMock()
+    result.fetchone.return_value = row
     db = AsyncMock()
     db.execute = AsyncMock(return_value=result)
     return db
@@ -124,3 +137,64 @@ async def test_save_does_not_raise_on_db_error():
         bot_response="hi",
         user_embedding=[],
     )
+
+
+# ---------------------------------------------------------------------------
+# fetch_cached_response
+# ---------------------------------------------------------------------------
+
+
+def _make_cache_row(bot_response: str) -> MagicMock:
+    row = MagicMock()
+    row.bot_response = bot_response
+    return row
+
+
+@pytest.mark.asyncio
+async def test_cache_returns_empty_string_on_miss():
+    """No matching row → empty string (cache miss)."""
+    db = _make_db_one(None)
+    result = await fetch_cached_response(db, user_message="What are your skills?")
+    assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_cache_returns_bot_response_on_hit():
+    """Matching row → return only the bot_response string."""
+    db = _make_db_one(_make_cache_row("I have 5 years of Python experience."))
+
+    result = await fetch_cached_response(db, user_message="What are your skills?")
+
+    assert result == "I have 5 years of Python experience."
+
+
+@pytest.mark.asyncio
+async def test_cache_does_not_include_conversation_formatting():
+    """The returned string must be plain response with no User:/Assistant: labels."""
+    db = _make_db_one(_make_cache_row("cached answer"))
+
+    result = await fetch_cached_response(db, user_message="question")
+
+    assert "User:" not in result
+    assert "Assistant:" not in result
+
+
+@pytest.mark.asyncio
+async def test_cache_passes_user_message_to_db():
+    """The exact user_message string is forwarded to the SQL query."""
+    db = _make_db_one(None)
+
+    await fetch_cached_response(db, user_message="Tell me about yourself")
+
+    params = db.execute.call_args[0][1]
+    assert params["user_message"] == "Tell me about yourself"
+
+
+@pytest.mark.asyncio
+async def test_cache_returns_single_response_not_multi_turn():
+    """Result must be the plain bot_response, not multi-turn formatted history."""
+    db = _make_db_one(_make_cache_row("single cached response"))
+
+    result = await fetch_cached_response(db, user_message="any question")
+
+    assert result == "single cached response"

@@ -20,6 +20,7 @@ from app.services import (
     generate_embedding,
     search_similar_sections,
     fetch_recent_history,
+    fetch_cached_response,
     save_chat_entry,
     build_chat_prompt,
     stream_chat_response,
@@ -55,10 +56,34 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
             f"{request.message[:50]}..."
         )
 
+        # Check text cache before doing any expensive work
+        cached_response = await fetch_cached_response(db, request.message)
+        if cached_response:
+            logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
+
+            async def cached_stream_generator():
+                words = cached_response.split(" ")
+                for i, word in enumerate(words):
+                    chunk = word if i == 0 else " " + word
+                    yield chunk
+                    await asyncio.sleep(0.03)
+
+                await save_chat_entry(
+                    db,
+                    session_id=request.session_id,
+                    user_message=request.message,
+                    bot_response=cached_response,
+                    user_embedding=[],
+                )
+
+            return StreamingResponse(cached_stream_generator(), media_type="text/plain")
+
         embeddings = generate_embedding(request.message)
+
         relevant_sections = await search_similar_sections(db, embeddings)
         history_context = await fetch_recent_history(db, request.session_id)
         prompt = build_chat_prompt(request.message, relevant_sections, history_context)
+
         async def stream_generator():
             response_text = ""
             async for chunk in stream_chat_response(prompt, relevant_sections):

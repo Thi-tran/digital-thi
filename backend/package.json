@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "test": ".venv/bin/python -m pytest tests/services/ -v",
+    "test:chat-history": ".venv/bin/python -m pytest tests/services/test_chat_history_service.py -v",
+    "test:embedding": ".venv/bin/python -m pytest tests/services/test_embedding_service.py -v",
+    "test:cv-search": ".venv/bin/python -m pytest tests/services/test_cv_search_service.py -v",
+    "test:prompt-builder": ".venv/bin/python -m pytest tests/services/test_prompt_builder.py -v",
+    "test:llm": ".venv/bin/python -m pytest tests/services/test_llm_service.py -v",
+    "restart": "docker compose restart backend",
+    "deploy": "./deploy.sh"
+  }
+}
