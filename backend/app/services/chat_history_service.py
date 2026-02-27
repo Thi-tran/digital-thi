@@ -17,10 +17,15 @@ _HISTORY_QUERY = text("""
 """)
 
 _CACHE_TEXT_QUERY = text("""
-    SELECT bot_response
-    FROM chat_history
-    WHERE LOWER(user_message) = LOWER(:user_message)
-    ORDER BY created_at ASC
+    SELECT ch.bot_response
+    FROM chat_history ch
+    WHERE LOWER(ch.user_message) = LOWER(:user_message)
+      AND ch.created_at = (
+          SELECT MIN(created_at)
+          FROM chat_history
+          WHERE session_id = ch.session_id
+      )
+    ORDER BY ch.created_at ASC
     LIMIT 1
 """)
 
