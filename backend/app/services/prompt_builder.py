@@ -5,7 +5,6 @@ import random
 from app.models import SearchResult
 
 _PIVOT_QUESTIONS = [
-    "Can I ask which company is this opportunity with?",
     "Would you like to know more about my background or education?",
     "Curious about my skillset or a fun fact about me?",
 ]
