@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -26,9 +27,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup - ping Ollama to wake it from cold start
-    logger.info("🔥 Pinging Ollama to wake from cold start...")
-    await ping_ollama()
+    # Startup - ping Ollama in the background so the server starts immediately
+    logger.info("🔥 Pinging Ollama in the background to wake from cold start...")
+    asyncio.create_task(ping_ollama())
     yield
     # Shutdown
     logger.info("Shutting down...")
