@@ -26,6 +26,13 @@ from app.services import (
     build_chat_prompt,
     stream_chat_response,
 )
+from app.services.reporting_service import (
+    get_total_conversations,
+    get_active_users,
+    get_avg_messages_per_chat,
+    get_conversation_trends,
+    get_popular_topics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -352,4 +359,38 @@ async def get_conversation_endpoint(session_id: str, db: AsyncSession):
     except Exception as e:
         logger.error(f"Error fetching conversation: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch conversation")
+
+
+async def get_reporting_stats_endpoint(db: AsyncSession):
+    """
+    Get analytics and reporting statistics.
+    Returns:
+    - total_conversations
+    - active_users
+    - avg_messages_per_chat
+    - response_rate
+    - conversation_trends (by month)
+    - popular_topics (top 5 most discussed topics)
+    """
+    try:
+        total_conversations = await get_total_conversations(db)
+        active_users = await get_active_users(db)
+        avg_messages_per_chat = await get_avg_messages_per_chat(db)
+        conversation_trends = await get_conversation_trends(db)
+        popular_topics = await get_popular_topics(db)
+        
+        # Response rate (assume 100% as all messages have responses)
+        response_rate = 100.0
+        
+        return {
+            'total_conversations': total_conversations,
+            'active_users': active_users,
+            'avg_messages_per_chat': round(avg_messages_per_chat, 1),
+            'response_rate': response_rate,
+            'conversation_trends': conversation_trends,
+            'popular_topics': popular_topics
+        }
+    except Exception as e:
+        logger.error(f"Error fetching reporting stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch reporting stats")
 

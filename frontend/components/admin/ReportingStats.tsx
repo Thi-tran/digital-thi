@@ -3,35 +3,37 @@ import React from 'react';
 interface StatItem {
   label: string;
   value: string | number;
-  change: string;
-  changeType: 'positive' | 'negative' | 'neutral';
 }
 
-const ReportingStats: React.FC = () => {
+interface ReportingStatsProps {
+  totalConversations?: number;
+  activeUsers?: number;
+  avgMessagesPerChat?: number;
+  responseRate?: number;
+}
+
+const ReportingStats: React.FC<ReportingStatsProps> = ({
+  totalConversations = 1247,
+  activeUsers = 856,
+  avgMessagesPerChat = 11.3,
+  responseRate = 98.7,
+}) => {
   const stats: StatItem[] = [
     {
       label: 'Total Conversations',
-      value: '1,247',
-      change: '+12.5% vs last month',
-      changeType: 'positive',
+      value: totalConversations.toLocaleString(),
     },
     {
       label: 'Active Users',
-      value: '856',
-      change: '+8.2% vs last month',
-      changeType: 'positive',
+      value: activeUsers.toLocaleString(),
     },
     {
       label: 'Avg. Messages per Chat',
-      value: '11.3',
-      change: '-2.1% vs last month',
-      changeType: 'negative',
+      value: avgMessagesPerChat,
     },
     {
       label: 'Response Rate',
-      value: '98.7%',
-      change: '+1.3% vs last month',
-      changeType: 'positive',
+      value: `${responseRate}%`,
     },
   ];
 
@@ -44,18 +46,6 @@ const ReportingStats: React.FC = () => {
         >
           <p className="text-sm text-zinc-400 mb-3">{stat.label}</p>
           <p className="text-3xl font-bold text-zinc-100 mb-2">{stat.value}</p>
-          <p
-            className={`text-xs flex items-center gap-1 ${stat.changeType === 'positive'
-                ? 'text-emerald-400'
-                : stat.changeType === 'negative'
-                  ? 'text-red-400'
-                  : 'text-zinc-500'
-              }`}
-          >
-            {stat.changeType === 'positive' && '↑'}
-            {stat.changeType === 'negative' && '↓'}
-            {stat.change}
-          </p>
         </div>
       ))}
     </div>

@@ -7,30 +7,42 @@ interface StatCard {
   changeType?: 'positive' | 'neutral';
 }
 
-const StatsGrid: React.FC = () => {
+interface StatsGridProps {
+  totalUsers?: number;
+  activeUsers?: number;
+  avgConversations?: number;
+  totalConversations?: number;
+}
+
+const StatsGrid: React.FC<StatsGridProps> = ({
+  totalUsers = 5,
+  activeUsers = 4,
+  avgConversations = 12,
+  totalConversations = 18,
+}) => {
   const stats: StatCard[] = [
     {
       label: 'Total Users',
-      value: '5',
+      value: totalUsers,
       change: '+12 this week',
       changeType: 'positive',
     },
     {
       label: 'Active Users',
-      value: '4',
+      value: activeUsers,
       change: '+8% from last month',
       changeType: 'positive',
     },
     {
       label: 'Avg. Conversations',
-      value: '12',
+      value: avgConversations,
       change: 'per user',
       changeType: 'neutral',
     },
     {
-      label: 'This Month',
-      value: '18',
-      change: 'new users',
+      label: 'Total Conversations',
+      value: totalConversations,
+      change: 'this month',
       changeType: 'neutral',
     },
   ];

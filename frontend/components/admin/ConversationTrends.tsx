@@ -11,8 +11,17 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const ConversationTrends: React.FC = () => {
-  const data = [
+interface TrendData {
+  month: string;
+  conversations: number;
+}
+
+interface ConversationTrendsProps {
+  data?: TrendData[];
+}
+
+const ConversationTrends: React.FC<ConversationTrendsProps> = ({ data }) => {
+  const defaultData: TrendData[] = [
     { month: 'Jan', conversations: 90 },
     { month: 'Feb', conversations: 140 },
     { month: 'Mar', conversations: 200 },
@@ -21,6 +30,8 @@ const ConversationTrends: React.FC = () => {
     { month: 'Jun', conversations: 360 },
   ];
 
+  const chartData = data || defaultData;
+
   return (
     <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-zinc-100 mb-4">
@@ -28,7 +39,7 @@ const ConversationTrends: React.FC = () => {
       </h3>
       <div style={{ width: '100%', height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
             <XAxis dataKey="month" stroke="#a1a1aa" />
             <YAxis stroke="#a1a1aa" />
