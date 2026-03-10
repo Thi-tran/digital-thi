@@ -15,6 +15,8 @@ interface UsersTableProps {
   users: User[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onViewConversation: (sessionId: string) => void;
+  onDeleteUser?: (sessionId: string) => void;
 }
 
 const FINLAND_TIMEZONE = 'Europe/Helsinki';
@@ -46,7 +48,7 @@ const formatLastActive = (dateString: string) => {
   }
 };
 
-const UsersTable: React.FC<UsersTableProps> = ({ users, searchQuery, onSearchChange }) => {
+const UsersTable: React.FC<UsersTableProps> = ({ users, searchQuery, onSearchChange, onViewConversation, onDeleteUser }) => {
   return (
     <div>
       {/* Search Bar */}
@@ -119,16 +121,29 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, searchQuery, onSearchCha
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-300">
                     {formatDate(user.joined_date)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button className="text-zinc-400 hover:text-zinc-200 transition-colors">
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onViewConversation(user.session_id)}
+                        className="text-zinc-400 hover:text-emerald-400 transition-colors"
+                        title="View conversation"
                       >
-                        <path d="M12 8a2 2 0 110-4 2 2 0 010 4zM12 14a2 2 0 110-4 2 2 0 010 4zM12 20a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </button>
+                      {onDeleteUser && (
+                        <button
+                          onClick={() => onDeleteUser(user.session_id)}
+                          className="text-zinc-400 hover:text-red-400 transition-colors"
+                          title="Delete user"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

@@ -19,7 +19,7 @@ const AdminSidebar: React.FC = () => {
       href: '/admin/users',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 12H9m6 0H9m6 0h.01M9 12h.01M15 12h.01M9 12h.01" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm0 1c-2.21 0-4 1.79-4 4v2h8v-2c0-2.21-1.79-4-4-4z" />
         </svg>
       ),
     },
@@ -39,7 +39,6 @@ const AdminSidebar: React.FC = () => {
       {/* Logo/Header */}
       <div className="p-6 border-b border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-100">Admin Portal</h2>
-        <p className="text-xs text-zinc-500 mt-1">Digital CV Manager</p>
       </div>
 
       {/* Navigation */}

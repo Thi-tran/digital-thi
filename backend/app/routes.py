@@ -325,3 +325,31 @@ async def get_users_endpoint(db: AsyncSession):
         logger.error(f"Error fetching users: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch users")
 
+
+async def get_conversation_endpoint(session_id: str, db: AsyncSession):
+    """
+    Get all messages for a specific session_id.
+    Returns both user messages and bot responses in chronological order.
+    """
+    try:
+        query = select(ChatHistory).where(
+            ChatHistory.session_id == session_id
+        ).order_by(ChatHistory.created_at.asc())
+        
+        result = await db.execute(query)
+        messages = result.scalars().all()
+        
+        conversation = []
+        for msg in messages:
+            conversation.append({
+                'id': msg.id,
+                'user_message': msg.user_message,
+                'bot_response': msg.bot_response,
+                'created_at': msg.created_at.isoformat() if msg.created_at else None,
+            })
+        
+        return {'session_id': session_id, 'messages': conversation}
+    except Exception as e:
+        logger.error(f"Error fetching conversation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch conversation")
+
