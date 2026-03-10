@@ -10,9 +10,9 @@ import ollama
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
-from app.database import CVSection
+from app.database import CVSection, ChatHistory
 from app.models import (
     ChatRequest, ChatResponse, SearchResult,
     AddCVSectionRequest, AddCVSectionResponse
@@ -289,3 +289,39 @@ async def ping_ollama():
         await asyncio.sleep(retry_delay)
 
     logger.error("❌ Ollama did not respond after multiple retries")
+
+async def get_users_endpoint(db: AsyncSession):
+    """
+    Get all unique users (by session_id) with their conversation counts and activity info.
+    Returns a list of users with:
+    - session_id
+    - conversation_count (number of messages)
+    - last_active (most recent message timestamp)
+    - joined_date (first message timestamp)
+    """
+    try:
+        # Query to get all distinct sessions with stats
+        query = select(
+            ChatHistory.session_id,
+            func.count(ChatHistory.id).label('conversation_count'),
+            func.max(ChatHistory.created_at).label('last_active'),
+            func.min(ChatHistory.created_at).label('joined_date')
+        ).group_by(ChatHistory.session_id).order_by(func.max(ChatHistory.created_at).desc())
+        
+        result = await db.execute(query)
+        rows = result.fetchall()
+        
+        users = []
+        for row in rows:
+            users.append({
+                'session_id': row.session_id,
+                'conversation_count': row.conversation_count,
+                'last_active': row.last_active.isoformat() if row.last_active else None,
+                'joined_date': row.joined_date.isoformat() if row.joined_date else None,
+            })
+        
+        return {'users': users}
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch users")
+
