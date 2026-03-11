@@ -54,35 +54,30 @@ async def get_avg_messages_per_chat(db: AsyncSession) -> float:
 
 async def get_conversation_trends(db: AsyncSession) -> list:
 		"""
-		Get conversation trends grouped by month.
-		Returns a list of dicts with month and conversation count.
+		Get conversation trends grouped by week.
+		Returns a list of dicts with week and conversation count.
 		"""
 		try:
 				query = select(
 						extract('year', ChatHistory.created_at).label('year'),
-						extract('month', ChatHistory.created_at).label('month'),
+						extract('week', ChatHistory.created_at).label('week'),
 						sqla_func.count(ChatHistory.id).label('count')
 				).group_by(
 						extract('year', ChatHistory.created_at),
-						extract('month', ChatHistory.created_at)
+						extract('week', ChatHistory.created_at)
 				).order_by(
 						extract('year', ChatHistory.created_at),
-						extract('month', ChatHistory.created_at)
+						extract('week', ChatHistory.created_at)
 				)
 				
 				result = await db.execute(query)
 				trend_rows = result.fetchall()
 				
-				months_map = {
-						1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'Jun',
-						7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'
-				}
-				
 				conversation_trends = []
-				for year, month, count in trend_rows:
-						if year and month:
+				for year, week, count in trend_rows:
+						if year and week:
 								conversation_trends.append({
-										'month': months_map.get(int(month), 'Unknown'),
+										'week': f"Week {int(week)}",
 										'conversations': int(count)
 								})
 				
@@ -107,7 +102,12 @@ async def get_popular_topics(db: AsyncSession) -> list:
 						'what', 'how', 'when', 'where', 'why', 'can', 'the', 'a', 'an',
 						'is', 'are', 'for', 'to', 'of', 'in', 'on', 'at', 'and', 'or', 'your', 'my', 'i', 'you', 
 						'we', 'they', 'he', 'she', 'it', 'about', 'with', 'as', 'by', 'from', 'this', 'that', 'these', 'those',
-						'need', 'be', 'have', 'has', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might',
+						'need', 'be', 'have', 'has', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 
+						'most', 'some', 'any', 'all', 'not', 'but', 'if', 'else', 'when', 'where', 'who', 'whom', 'which', 'what',
+						'how', 'why', 'can', 'could', 'should', 'would', 'may', 'might', 'must', 'shall', 'also', 'just', 'like', 'know', 
+						'think', 'want', 'need', 'feel', 'see', 'look', 'get', 'go', 'come',
+						'give', 'take', 'make', 'do', 'say', 'tell', 'ask', 'answer', 'help', 'use', 'work', 'try', 'find',
+						'call', 'talk', 'speak', 'listen', 'hear', 'read', 'write', 'learn', 'understand', 'remember', 'forget', 'believe', 'hope', 'wish', 'like', 'love', 'hate', 'prefer',
 				}
 				
 				for msg in all_messages:

@@ -11,7 +11,7 @@ interface ReportingData {
   active_users: number;
   avg_messages_per_chat: number;
   response_rate: number;
-  conversation_trends: Array<{ month: string; conversations: number }>;
+  conversation_trends: Array<{ week: string; conversations: number }>;
   popular_topics: Array<{ topic: string; engagement: number }>;
 }
 
