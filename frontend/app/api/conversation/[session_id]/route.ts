@@ -6,8 +6,7 @@ export async function GET(
 ) {
   try {
     const { session_id } = await params;
-    console.log('Received request for conversation with session_id:', session_id);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/conversation/${session_id}`);
 
     if (!response.ok) {
