@@ -10,9 +10,9 @@ import ollama
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
-from app.database import CVSection
+from app.database import CVSection, ChatHistory
 from app.models import (
     ChatRequest, ChatResponse, SearchResult,
     AddCVSectionRequest, AddCVSectionResponse
@@ -25,6 +25,14 @@ from app.services import (
     save_chat_entry,
     build_chat_prompt,
     stream_chat_response,
+)
+from app.services.reporting_service import (
+    get_total_conversations,
+    get_active_users,
+    get_avg_messages_per_chat,
+    get_conversation_trends,
+    get_popular_topics,
+    get_response_rate,
 )
 
 logger = logging.getLogger(__name__)
@@ -289,3 +297,99 @@ async def ping_ollama():
         await asyncio.sleep(retry_delay)
 
     logger.error("❌ Ollama did not respond after multiple retries")
+
+async def get_users_endpoint(db: AsyncSession):
+    """
+    Get all unique users (by session_id) with their conversation counts and activity info.
+    Returns a list of users with:
+    - session_id
+    - conversation_count (number of messages)
+    - last_active (most recent message timestamp)
+    - joined_date (first message timestamp)
+    """
+    try:
+        # Query to get all distinct sessions with stats
+        query = select(
+            ChatHistory.session_id,
+            func.count(ChatHistory.id).label('conversation_count'),
+            func.max(ChatHistory.created_at).label('last_active'),
+            func.min(ChatHistory.created_at).label('joined_date')
+        ).group_by(ChatHistory.session_id).order_by(func.max(ChatHistory.created_at).desc())
+        
+        result = await db.execute(query)
+        rows = result.fetchall()
+        
+        users = []
+        for row in rows:
+            users.append({
+                'session_id': row.session_id,
+                'conversation_count': row.conversation_count,
+                'last_active': row.last_active.isoformat() if row.last_active else None,
+                'joined_date': row.joined_date.isoformat() if row.joined_date else None,
+            })
+        
+        return {'users': users}
+    except Exception as e:
+        logger.error(f"Error fetching users: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch users")
+
+
+async def get_conversation_endpoint(session_id: str, db: AsyncSession):
+    """
+    Get all messages for a specific session_id.
+    Returns both user messages and bot responses in chronological order.
+    """
+    try:
+        query = select(ChatHistory).where(
+            ChatHistory.session_id == session_id
+        ).order_by(ChatHistory.created_at.asc())
+        
+        result = await db.execute(query)
+        messages = result.scalars().all()
+        
+        conversation = []
+        for msg in messages:
+            conversation.append({
+                'id': msg.id,
+                'user_message': msg.user_message,
+                'bot_response': msg.bot_response,
+                'created_at': msg.created_at.isoformat() if msg.created_at else None,
+            })
+        
+        return {'session_id': session_id, 'messages': conversation}
+    except Exception as e:
+        logger.error(f"Error fetching conversation: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch conversation")
+
+
+async def get_reporting_stats_endpoint(db: AsyncSession):
+    """
+    Get analytics and reporting statistics.
+    Returns:
+    - total_conversations
+    - active_users
+    - avg_messages_per_chat
+    - response_rate
+    - conversation_trends (by month)
+    - popular_topics (top 5 most discussed topics)
+    """
+    try:
+        total_conversations = await get_total_conversations(db)
+        active_users = await get_active_users(db)
+        avg_messages_per_chat = await get_avg_messages_per_chat(db)
+        conversation_trends = await get_conversation_trends(db)
+        popular_topics = await get_popular_topics(db)
+        response_rate = await get_response_rate(db)
+        
+        return {
+            'total_conversations': total_conversations,
+            'active_users': active_users,
+            'avg_messages_per_chat': round(avg_messages_per_chat, 1),
+            'response_rate': response_rate,
+            'conversation_trends': conversation_trends,
+            'popular_topics': popular_topics
+        }
+    except Exception as e:
+        logger.error(f"Error fetching reporting stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch reporting stats")
+

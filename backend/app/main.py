@@ -17,7 +17,10 @@ from app.routes import (
     get_cv_sections_endpoint,
     generate_embeddings_endpoint,
     health_check,
-    ping_ollama
+    ping_ollama,
+    get_users_endpoint,
+    get_conversation_endpoint,
+    get_reporting_stats_endpoint
 )
 
 # Configure logging
@@ -67,6 +70,18 @@ async def add_cv_section(request, db: AsyncSession = Depends(get_db)):
 @app.get("/api/cv-sections")
 async def get_cv_sections(db: AsyncSession = Depends(get_db)):
     return await get_cv_sections_endpoint(db)
+
+@app.get("/api/users")
+async def get_users(db: AsyncSession = Depends(get_db)):
+    return await get_users_endpoint(db)
+
+@app.get("/api/conversation/{session_id}")
+async def get_conversation(session_id: str, db: AsyncSession = Depends(get_db)):
+    return await get_conversation_endpoint(session_id, db)
+
+@app.get("/api/reporting/stats")
+async def get_reporting_stats(db: AsyncSession = Depends(get_db)):
+    return await get_reporting_stats_endpoint(db)
 
 @app.post("/api/run-migrations")
 async def run_migrations_endpoint():
