@@ -102,7 +102,12 @@ async def get_popular_topics(db: AsyncSession) -> list:
 						'what', 'how', 'when', 'where', 'why', 'can', 'the', 'a', 'an',
 						'is', 'are', 'for', 'to', 'of', 'in', 'on', 'at', 'and', 'or', 'your', 'my', 'i', 'you', 
 						'we', 'they', 'he', 'she', 'it', 'about', 'with', 'as', 'by', 'from', 'this', 'that', 'these', 'those',
-						'need', 'be', 'have', 'has', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might',
+						'need', 'be', 'have', 'has', 'do', 'does', 'did', 'will', 'would', 'should', 'could', 'may', 'might', 
+						'most', 'some', 'any', 'all', 'not', 'but', 'if', 'else', 'when', 'where', 'who', 'whom', 'which', 'what',
+						'how', 'why', 'can', 'could', 'should', 'would', 'may', 'might', 'must', 'shall', 'also', 'just', 'like', 'know', 
+						'think', 'want', 'need', 'feel', 'see', 'look', 'get', 'go', 'come',
+						'give', 'take', 'make', 'do', 'say', 'tell', 'ask', 'answer', 'help', 'use', 'work', 'try', 'find',
+						'call', 'talk', 'speak', 'listen', 'hear', 'read', 'write', 'learn', 'understand', 'remember', 'forget', 'believe', 'hope', 'wish', 'like', 'love', 'hate', 'prefer',
 				}
 				
 				for msg in all_messages:
