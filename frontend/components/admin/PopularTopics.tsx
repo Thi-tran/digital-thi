@@ -21,24 +21,17 @@ interface PopularTopicsProps {
 }
 
 const PopularTopics: React.FC<PopularTopicsProps> = ({ data }) => {
-  const defaultData: TopicData[] = [
-    { topic: 'Experience', engagement: 500 },
-    { topic: 'Skills', engagement: 380 },
-    { topic: 'Projects', engagement: 280 },
-    { topic: 'Education', engagement: 180 },
-    { topic: 'Contact', engagement: 150 },
-  ];
-
-  const chartData = data || defaultData;
-
+  if (!data || data.length === 0) {
+    return null;
+  }
   return (
     <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-zinc-100 mb-4">
-        Popular Topics
+        Popular Keywords
       </h3>
       <div style={{ width: '100%', height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData}>
+          <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
             <XAxis dataKey="topic" stroke="#a1a1aa" />
             <YAxis stroke="#a1a1aa" />

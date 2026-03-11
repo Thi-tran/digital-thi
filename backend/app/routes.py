@@ -32,6 +32,7 @@ from app.services.reporting_service import (
     get_avg_messages_per_chat,
     get_conversation_trends,
     get_popular_topics,
+    get_response_rate,
 )
 
 logger = logging.getLogger(__name__)
@@ -378,9 +379,7 @@ async def get_reporting_stats_endpoint(db: AsyncSession):
         avg_messages_per_chat = await get_avg_messages_per_chat(db)
         conversation_trends = await get_conversation_trends(db)
         popular_topics = await get_popular_topics(db)
-        
-        # Response rate (assume 100% as all messages have responses)
-        response_rate = 100.0
+        response_rate = await get_response_rate(db)
         
         return {
             'total_conversations': total_conversations,
