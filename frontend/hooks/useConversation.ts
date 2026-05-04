@@ -9,6 +9,7 @@ interface UseConversationReturn {
   updateLastMessage: (content: string) => void;
   isLoading: boolean;
   isStreaming: boolean;
+  isLoadingHistory: boolean;
   setIsLoading: (loading: boolean) => void;
   sessionId: string;
   streamMessage: (message: string, sessionId: string) => Promise<void>;
@@ -18,17 +19,45 @@ export const useConversation = (): UseConversationReturn => {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [sessionId, setSessionId] = useState<string>('');  
 
-  // Initialize session ID on mount
+  // Initialize session ID on mount and load history for returning sessions
   useEffect(() => {
     const storedSessionId = localStorage.getItem('chat_session_id');
     if (storedSessionId) {
       setSessionId(storedSessionId);
+      // Load previous conversation history
+      setIsLoadingHistory(true);
+      fetch(`/api/conversation/${storedSessionId}`)
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.messages?.length) {
+            const history: ConversationMessage[] = [];
+            for (const entry of data.messages) {
+              history.push({
+                id: `hist-user-${entry.id}`,
+                content: entry.user_message,
+                timestamp: entry.created_at ? new Date(entry.created_at) : new Date(),
+                isUser: true,
+              });
+              history.push({
+                id: `hist-bot-${entry.id}`,
+                content: entry.bot_response,
+                timestamp: entry.created_at ? new Date(entry.created_at) : new Date(),
+                isUser: false,
+              });
+            }
+            setMessages(history);
+          }
+        })
+        .catch((err) => console.error('Failed to load conversation history:', err))
+        .finally(() => setIsLoadingHistory(false));
     } else {
       const newSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem('chat_session_id', newSessionId);
       setSessionId(newSessionId);
+      setIsLoadingHistory(false);
     }
   }, []);
 
@@ -108,6 +137,7 @@ export const useConversation = (): UseConversationReturn => {
     updateLastMessage,
     isLoading,
     isStreaming,
+    isLoadingHistory,
     setIsLoading,
     sessionId,
     streamMessage,

@@ -31,7 +31,7 @@ ollama serve
 
 ```bash
 # From the project root
-docker-compose up -d
+docker compose up -d
 ```
 
 This will start:
