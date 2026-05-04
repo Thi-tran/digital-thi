@@ -14,7 +14,7 @@ import { SuggestionButton } from '@/types';
 import { personalAvatar } from '@/components/Avatar';
 
 export const ChatPage: React.FC = () => {
-  const { messages, addMessage, isLoading, isStreaming, setIsLoading, sessionId, streamMessage } = useConversation();
+  const { messages, addMessage, isLoading, isStreaming, isLoadingHistory, setIsLoading, sessionId, streamMessage } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -56,7 +56,8 @@ export const ChatPage: React.FC = () => {
     setIsLoading(false);
   };
 
-  const showInitialState = messages.length === 0;
+  // Hide suggestions when history is loaded or user has sent messages
+  const showInitialState = messages.length === 0 && !isLoadingHistory;
 
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
@@ -73,7 +74,18 @@ export const ChatPage: React.FC = () => {
             timestamp={new Date()}
           />
 
-          {showInitialState ? (
+          {isLoadingHistory ? (
+            <div className="flex flex-1 items-center justify-center px-6 py-12">
+              <div className="flex items-center gap-3 text-zinc-400 dark:text-zinc-500">
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce" />
+                  <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-100" />
+                  <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-200" />
+                </div>
+                <span className="text-sm">Loading previous conversation...</span>
+              </div>
+            </div>
+          ) : showInitialState ? (
             <div className="flex flex-1 items-center justify-center px-6 py-12">
               <ChatSection title="Ask me anything" subtitle="Click a suggestion below or type your own question">
                 <SuggestionGrid

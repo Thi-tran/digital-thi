@@ -89,7 +89,7 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                         session_id=request.session_id,
                         user_message=request.message,
                         bot_response=cached_response,
-                        user_embedding=[],
+                        user_embedding=None,
                     )
 
                 return StreamingResponse(cached_stream_generator(), media_type="text/plain")

@@ -83,7 +83,7 @@ async def save_chat_entry(
     session_id: str,
     user_message: str,
     bot_response: str,
-    user_embedding: list[float],
+    user_embedding: list[float] | None,
 ) -> None:
     """
     Persist a single user/bot exchange to the chat_history table.
