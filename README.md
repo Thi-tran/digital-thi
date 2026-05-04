@@ -2,6 +2,12 @@
 
 This project includes a Next.js frontend, FastAPI backend with Ollama embeddings, and PostgreSQL with pgvector for semantic search.
 
+## Docs 
+
+1. Architecture https://app.diagrams.net/#G1syzY2rXEq-xBxNOWQM8rhyzAgS_8f6Ta#%7B%22pageId%22%3A%22mZL3BE2WfUE70zM2QdGX%22%7D
+2. Design https://www.figma.com/make/nt94s27pqRtI6KMhIDverV/Digital-CV-with-ChatGPT?p=f
+
+
 ## Prerequisites
 
 1. **Docker & Docker Compose** installed
