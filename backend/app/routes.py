@@ -73,8 +73,16 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
         # and cached responses would carry the wrong context anyway.
         if not history_context:
             cached_response = await fetch_cached_response(db, request.message)
+
             if cached_response:
                 logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
+                await save_chat_entry(
+                    db,
+                    session_id=request.session_id,
+                    user_message=request.message,
+                    bot_response=cached_response,
+                    user_embedding=None,
+                )
 
                 async def cached_stream_generator():
                     await asyncio.sleep(random.uniform(1.0, 2.0))
@@ -83,14 +91,6 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                         chunk = word if i == 0 else " " + word
                         yield chunk
                         await asyncio.sleep(0.03)
-
-                    await save_chat_entry(
-                        db,
-                        session_id=request.session_id,
-                        user_message=request.message,
-                        bot_response=cached_response,
-                        user_embedding=None,
-                    )
 
                 return StreamingResponse(cached_stream_generator(), media_type="text/plain")
 
@@ -392,4 +392,3 @@ async def get_reporting_stats_endpoint(db: AsyncSession):
     except Exception as e:
         logger.error(f"Error fetching reporting stats: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch reporting stats")
-
