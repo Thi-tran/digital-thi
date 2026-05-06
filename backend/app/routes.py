@@ -110,15 +110,14 @@ async def chat_endpoint(
             async for chunk in stream_chat_response(prompt, relevant_sections):
                 response_text += chunk
                 yield chunk
+
             background_tasks.add_task(
                 save_chat_entry,
                 db,
                 request.session_id,
                 request.message,
                 response_text,
-                request.message,
-                bot_response=response_text,
-                user_embedding=embeddings,
+                embeddings,
             )
 
         return StreamingResponse(stream_generator(), media_type="text/plain")
