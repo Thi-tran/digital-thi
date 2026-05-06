@@ -7,7 +7,7 @@ import asyncio
 import random
 import httpx
 import ollama
-from fastapi import HTTPException
+from fastapi import HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -42,7 +42,9 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
 
 
-async def chat_endpoint(request: ChatRequest, db: AsyncSession):
+async def chat_endpoint(
+    request: ChatRequest, db: AsyncSession, background_tasks: BackgroundTasks
+):
     """
     Process a chat message by orchestrating the following steps:
       1. Validate the request.
@@ -75,13 +77,8 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
             cached_response = await fetch_cached_response(db, request.message)
 
             if cached_response:
-                logger.info(f"Cache hit for session {request.session_id} – replaying cached response")
-                await save_chat_entry(
-                    db,
-                    session_id=request.session_id,
-                    user_message=request.message,
-                    bot_response=cached_response,
-                    user_embedding=None,
+                logger.info(
+                    f"Cache hit for session {request.session_id} – replaying cached response"
                 )
 
                 async def cached_stream_generator():
@@ -91,6 +88,15 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
                         chunk = word if i == 0 else " " + word
                         yield chunk
                         await asyncio.sleep(0.03)
+
+                background_tasks.add_task(
+                    save_chat_entry,
+                    db,
+                    request.session_id,
+                    request.message,
+                    cached_response,
+                    None,
+                )
 
                 return StreamingResponse(cached_stream_generator(), media_type="text/plain")
 
@@ -104,11 +110,13 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
             async for chunk in stream_chat_response(prompt, relevant_sections):
                 response_text += chunk
                 yield chunk
-
-            await save_chat_entry(
+            background_tasks.add_task(
+                save_chat_entry,
                 db,
-                session_id=request.session_id,
-                user_message=request.message,
+                request.session_id,
+                request.message,
+                response_text,
+                request.message,
                 bot_response=response_text,
                 user_embedding=embeddings,
             )

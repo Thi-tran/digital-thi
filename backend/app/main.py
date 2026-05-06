@@ -3,7 +3,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from app.embeddings_service import generate_cv_embeddings
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,10 +57,16 @@ app.add_middleware(
 async def root():
     return {"message": "Digital Tarmo Backend API", "status": "running"}
 
+
 # Chat endpoint
 @app.post("/api/chat")
-async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
-    return await chat_endpoint(request, db)
+async def chat(
+    request: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    background_tasks: BackgroundTasks = Depends(),
+):
+    return await chat_endpoint(request, db, background_tasks)
+
 
 # CV section endpoints
 @app.post("/api/cv-section")
