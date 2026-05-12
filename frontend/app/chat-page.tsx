@@ -28,8 +28,10 @@ export const ChatPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!isLoadingHistory && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [isLoadingHistory]);
 
   const handleSuggestionClick = async (suggestion: SuggestionButton) => {
     if (isLoading || !sessionId) return;
