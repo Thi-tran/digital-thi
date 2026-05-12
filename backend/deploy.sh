@@ -2,6 +2,7 @@ docker build --platform linux/amd64 -t europe-west1-docker.pkg.dev/digital-tarmo
 docker push europe-west1-docker.pkg.dev/digital-tarmo/digitaltarmo-repo/backend:latest
 gcloud run deploy digital-tarmo-backend \
   --image=europe-west1-docker.pkg.dev/digital-tarmo/digitaltarmo-repo/backend:latest \
+  --min-instances=1 \
   --region=europe-west1 \
   --platform=managed \
   --service-account=digital-tarmo-compute@digital-tarmo.iam.gserviceaccount.com \
