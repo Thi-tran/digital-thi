@@ -6,7 +6,7 @@ import os
 import asyncio
 import random
 import httpx
-import ollama
+
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,10 +36,6 @@ from app.services.reporting_service import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Configure Ollama client with base URL from environment
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
 
 
 async def chat_endpoint(request: ChatRequest, db: AsyncSession):
@@ -115,12 +111,6 @@ async def chat_endpoint(request: ChatRequest, db: AsyncSession):
 
         return StreamingResponse(stream_generator(), media_type="text/plain")
 
-    except ollama.ResponseError as e:
-        logger.error(f"Ollama error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ollama model error: {str(e)}. Make sure the nomic-embed-text model is installed."
-        )
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -137,18 +127,7 @@ async def add_cv_section_endpoint(request: AddCVSectionRequest, db: AsyncSession
         logger.info(f"Adding CV section: {request.section_type}")
 
         # Generate embeddings for the CV section content
-        response =ollamaClient.embed(
-            model="nomic-embed-text",
-            input=request.content
-        )
-
-        embedding = response.get("embeddings", [[]])[0]
-
-        if not embedding:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to generate embeddings"
-            )
+        embedding = generate_embedding(request.content)
 
         logger.info(f"Generated embedding with {len(embedding)} dimensions")
 
@@ -174,12 +153,6 @@ async def add_cv_section_endpoint(request: AddCVSectionRequest, db: AsyncSession
             message="CV section added successfully"
         )
 
-    except ollama.ResponseError as e:
-        logger.error(f"Ollama error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ollama model error: {str(e)}. Make sure the nomic-embed-text model is installed."
-        )
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -218,7 +191,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
     try:
         # Get all CV sections without embeddings
         result = await db.execute(
-            select(CVSection).where(CVSection.embedding == None)
+            select(CVSection).where(CVSection.embedding.is_(None))
         )
         cv_sections = result.scalars().all()
         
@@ -234,20 +207,12 @@ async def generate_embeddings_endpoint(db: AsyncSession):
         for cv_section in cv_sections:
             try:
                 # Generate embedding for the CV section
-                response =ollamaClient.embed(
-                    model="nomic-embed-text",
-                    input=cv_section.content
-                )
+                embedding = generate_embedding(cv_section.content)
                 
-                embedding = response.get("embeddings", [[]])[0]
-                
-                if embedding:
-                    cv_section.embedding = embedding
-                    await db.commit()
-                    generated_count += 1
-                    logger.debug(f"✅ Generated embedding for {cv_section.section_type}")
-                else:
-                    logger.warning(f"⚠️ Failed to generate embedding for {cv_section.section_type}")
+                cv_section.embedding = embedding
+                await db.commit()
+                generated_count += 1
+                logger.debug(f"✅ Generated embedding for {cv_section.section_type}")
             
             except Exception as e:
                 logger.error(f"❌ Error generating embedding for {cv_section.section_type}: {str(e)}")
@@ -267,36 +232,10 @@ async def generate_embeddings_endpoint(db: AsyncSession):
 def health_check():
     """Health check endpoint to verify the service is running."""
     try:
-        ollamaClient.list()
-        return {"status": "healthy", "ollama": "connected"}
+        return {"status": "healthy", "service": "digital-tarmo-backend"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
 
-
-async def ping_ollama():
-    """
-    Warm up Ollama by sending a real inference request so the model is
-    loaded into memory before the first user message arrives.
-    Retries until the request succeeds.
-    """
-    max_retries = 10
-    retry_delay = 3  # seconds
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                logger.info(f"🔥 Warming up Ollama (attempt {attempt}/{max_retries})...")
-                await client.post(
-                    f"{OLLAMA_BASE_URL}/api/generate",
-                    json={"model": "gemma3", "prompt": "hi", "stream": False},
-                )
-                logger.info("✅ Ollama model is warm and ready")
-                return
-        except Exception as e:
-            logger.warning(f"⏳ Ollama not ready yet (attempt {attempt}/{max_retries}): {e}")
-        await asyncio.sleep(retry_delay)
-
-    logger.error("❌ Ollama did not respond after multiple retries")
 
 async def get_users_endpoint(db: AsyncSession):
     """

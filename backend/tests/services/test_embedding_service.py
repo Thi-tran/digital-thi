@@ -13,10 +13,12 @@ import app.services.embedding_service as svc
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_client(embeddings: list) -> MagicMock:
-    """Return a mock Ollama client whose .embed() returns *embeddings*."""
+def _make_client(embedding: list) -> MagicMock:
+    """Return a mock Google Vertex AI client whose embed_content() returns *embedding*."""
     client = MagicMock()
-    client.embed.return_value = {"embeddings": [embeddings]}
+    response = MagicMock()
+    response.embedding = embedding
+    client.models.embed_content.return_value = response
     return client
 
 
@@ -35,14 +37,14 @@ def test_generate_embedding_returns_vector():
 
 
 def test_generate_embedding_passes_text_to_client():
-    """The raw *text* is forwarded to the Ollama client."""
+    """The raw *text* is forwarded to the Vertex AI client."""
     vector = [0.5] * 768
     mock_client = _make_client(vector)
     with patch.object(svc, "_client", mock_client):
         svc.generate_embedding("test input")
 
-    mock_client.embed.assert_called_once_with(
-        model=svc.EMBED_MODEL, input="test input"
+    mock_client.models.embed_content.assert_called_once_with(
+        model=svc.EMBED_MODEL, contents=["test input"]
     )
 
 
@@ -56,21 +58,12 @@ def test_generate_embedding_raises_on_empty_embedding():
     assert "embeddings" in exc_info.value.detail.lower()
 
 
-def test_generate_embedding_raises_on_missing_key():
-    """Ollama response without 'embeddings' key must raise HTTPException(500)."""
+def test_generate_embedding_raises_on_client_error():
+    """Client errors from Vertex AI are caught and converted to HTTPException(500)."""
     mock_client = MagicMock()
-    mock_client.embed.return_value = {}  # no "embeddings" key
+    mock_client.models.embed_content.side_effect = RuntimeError("connection refused")
     with patch.object(svc, "_client", mock_client):
         with pytest.raises(HTTPException) as exc_info:
-            svc.generate_embedding("oops")
+            svc.generate_embedding("crash")
 
     assert exc_info.value.status_code == 500
-
-
-def test_generate_embedding_propagates_ollama_errors():
-    """Network / model errors from the client bubble up unchanged."""
-    mock_client = MagicMock()
-    mock_client.embed.side_effect = RuntimeError("connection refused")
-    with patch.object(svc, "_client", mock_client):
-        with pytest.raises(RuntimeError, match="connection refused"):
-            svc.generate_embedding("crash")

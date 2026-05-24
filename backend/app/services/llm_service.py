@@ -1,20 +1,23 @@
 """
-LLM service – streams a response from the Ollama chat model.
+LLM service – streams a response from Google Vertex AI (Gemini).
 """
 import logging
 import os
 from typing import AsyncGenerator
 
-import ollama
+from google import genai
+from google.genai import types
 
 from app.models import SearchResult
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-_client = ollama.Client(host=OLLAMA_BASE_URL)
+# Vertex AI configuration
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-497317")
+LOCATION = os.getenv("GCP_LOCATION", "europe-west1")
+_client = genai.Client(enterprise=True, project=PROJECT_ID, location='eu')
 
-CHAT_MODEL = "gemma3"
+CHAT_MODEL = "gemini-3.1-flash-lite" 
 
 _FALLBACK_NO_SECTIONS = (
     "I couldn't find specific information about that in my CV. "
@@ -27,36 +30,38 @@ async def stream_chat_response(
     relevant_sections: list[SearchResult],
 ) -> AsyncGenerator[str, None]:
     """
-    Yield response chunks from the LLM.
+    Yield response chunks from the Vertex AI Gemini model.
 
     * If *relevant_sections* is empty the function yields a single fallback
       string and returns immediately.
-    * If Ollama raises an error the function falls back to a plain-text summary
+    * If Vertex AI raises an error the function falls back to a plain-text summary
       of the sections.
     """
     if not relevant_sections:
         yield _FALLBACK_NO_SECTIONS
         return
 
-    logger.info("Streaming response from Ollama...")
-
+    logger.info("Streaming response from Vertex AI Gemini...")
+    print(f"Prompt: {prompt}")
     try:
-        ollama_response = _client.generate(
+        response = _client.models.generate_content_stream(
             model=CHAT_MODEL,
-            prompt=prompt,
-            stream=True,
+            contents=[prompt],
+            config=types.GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=1024,
+            ),
         )
 
-        for chunk in ollama_response:
-            chunk_text: str = chunk.get("response", "")
-            if chunk_text:
-                yield chunk_text
+        for chunk in response:
+            if hasattr(chunk, 'text') and chunk.text:
+                yield chunk.text
                 # Yield control so the event-loop can flush the chunk
                 import asyncio
                 await asyncio.sleep(0)
 
-    except ollama.ResponseError as exc:
-        logger.warning(f"Ollama generation failed, using fallback: {exc}")
+    except Exception as exc:
+        logger.warning(f"Vertex AI generation failed, using fallback: {exc}")
         fallback = "Based on my CV, here's what I found:\n" + "\n".join(
             f"- {s.content}" for s in relevant_sections
         )

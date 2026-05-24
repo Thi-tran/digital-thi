@@ -3,15 +3,16 @@ Embeddings generation service
 """
 import logging
 import os
-import ollama
+from google import genai
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 logger = logging.getLogger(__name__)
 
-# Configure Ollama client with base URL from environment
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-ollamaClient = ollama.Client(host=OLLAMA_BASE_URL)
+# Configure Vertex AI client
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-497317")
+LOCATION = os.getenv("GCP_LOCATION", "europe-west1")
+vertexAIClient = genai.Client(enterprise=True, project=PROJECT_ID, location=LOCATION)
 
 
 async def generate_cv_embeddings():
@@ -46,12 +47,12 @@ async def generate_cv_embeddings():
             for cv_section in cv_sections:
                 try:
                     # Generate embedding for the CV section
-                    response = ollamaClient.embed(
-                        model="nomic-embed-text",
-                        input=cv_section.content
+                    response = vertexAIClient.models.embed_content(
+                        model="text-embedding-005",
+                        contents=[cv_section.content]
                     )
                     
-                    embedding = response.get("embeddings", [[]])[0]
+                    embedding = response.embedding
                     
                     if embedding:
                         cv_section.embedding = embedding
