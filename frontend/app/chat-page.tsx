@@ -17,19 +17,26 @@ export const ChatPage: React.FC = () => {
   const { messages, addMessage, isLoading, isStreaming, isLoadingHistory, setIsLoading, sessionId, streamMessage } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
 
   useEffect(() => {
     fetch('/api/chat', { method: 'GET' }).catch(() => { });
   }, []);
 
+  // When a new message is added, scroll the user message to the very top of the container
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
+    if (messages.length > prevMessagesLengthRef.current && lastUserMessageRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const msgEl = lastUserMessageRef.current;
+      const containerTop = container.getBoundingClientRect().top;
+      const msgTop = msgEl.getBoundingClientRect().top;
+      const offset = msgTop - containerTop + container.scrollTop;
+      container.scrollTo({ top: offset - 10, behavior: 'smooth' });
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length]);
 
   const handleSuggestionClick = async (suggestion: SuggestionButton) => {
     if (isLoading || !sessionId) return;
@@ -59,11 +66,14 @@ export const ChatPage: React.FC = () => {
   // Hide suggestions when history is loaded or user has sent messages
   const showInitialState = messages.length === 0 && !isLoadingHistory;
 
+  // Find the index of the last user message for attaching the ref
+  const lastUserMessageIndex = messages.reduce((last, msg, i) => msg.isUser ? i : last, -1);
+
   return (
     <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
       <Header title="Digital Tarmo" />
 
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
         <div className="space-y-4 px-6 py-8">
 
           <Message
@@ -97,9 +107,10 @@ export const ChatPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {messages.map((message) => (
+              {messages.map((message, index) => (
                 <Message
                   key={message.id}
+                  ref={index === lastUserMessageIndex ? lastUserMessageRef : undefined}
                   content={message.content}
                   isUser={message.isUser}
                   avatarSrc={!message.isUser ? personalAvatar : undefined}
@@ -108,7 +119,7 @@ export const ChatPage: React.FC = () => {
                 />
               ))}
 
-                {isLoading && !isStreaming && (
+              {isLoading && !isStreaming && (
                 <div className="flex gap-3">
                   <div className="flex items-center gap-2 rounded-lg bg-zinc-100 px-4 py-2.5 dark:bg-zinc-800">
                     <div className="flex gap-1">
@@ -120,7 +131,8 @@ export const ChatPage: React.FC = () => {
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
+              {/* Spacer so the last user message can always scroll to the top */}
+              {isLoading && <div className="h-screen" />}
             </>
           )}
         </div>

@@ -57,21 +57,21 @@ const parseContent = (content: string) => {
   });
 };
 
-export const Message: React.FC<MessageProps> = ({
+export const Message = React.forwardRef<HTMLDivElement, MessageProps>(({
   content,
   isUser,
   avatarSrc,
   avatarAlt = 'Avatar',
   timestamp,
-}) => {
+}, ref) => {
   const timeString = timestamp
     ? timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : '';
 
-  const cleanContent = content.replace(/^[\"'“”]+|[\"'“”]+$/g, "").trim();
+  const cleanContent = content.replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, '').trim();
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div ref={ref} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {!isUser && avatarSrc && <Avatar alt={avatarAlt} size="md" />}
 
       <div className={`max-w-[80%] flex flex-col gap-1 ${isUser ? 'items-end' : 'items-start'}`}>
@@ -93,6 +93,8 @@ export const Message: React.FC<MessageProps> = ({
       </div>
     </div>
   );
-};
+});
+
+Message.displayName = 'Message';
 
 export default Message;
