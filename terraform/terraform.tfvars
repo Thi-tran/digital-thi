@@ -1,0 +1,6 @@
+project_id    = "digital-tarmo-497317"
+region        = "europe-west1"
+db_name       = "digitalthi_db"
+db_user       = "digitalthi"
+frontend_url  = "https://digital-tarmo.vercel.app"
+backend_image = "europe-west1-docker.pkg.dev/digital-tarmo-497317/digitaltarmo-repo/backend:latest"
