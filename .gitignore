@@ -1,0 +1,16 @@
+# Terraform — never commit secrets or local state
+terraform/terraform.tfvars
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfstate.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Environment files
+.env
+.env.local

@@ -28,3 +28,15 @@ resource "google_project_iam_member" "cloud_run_trace_agent" {
   role    = "roles/cloudtrace.agent"
   member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
 }
+
+resource "google_project_iam_member" "cloud_run_vertex_ai_user" {
+  project = var.project_id
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
+
+resource "google_project_iam_member" "cloud_run_vertex_ai_editor" {
+  project = var.project_id
+  role    = "roles/aiplatform.editor"
+  member  = "serviceAccount:${google_service_account.cloud_run_sa.email}"
+}
