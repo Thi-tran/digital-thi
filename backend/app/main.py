@@ -1,15 +1,13 @@
-import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from app.embeddings_service import generate_cv_embeddings
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.migrations_runner import run_migrations
 from app.embeddings_service import generate_cv_embeddings
+from app.migrations_runner import run_migrations
 from app.models import ChatRequest
 from app.routes import (
     chat_endpoint,
@@ -17,7 +15,6 @@ from app.routes import (
     get_cv_sections_endpoint,
     generate_embeddings_endpoint,
     health_check,
-    ping_ollama,
     get_users_endpoint,
     get_conversation_endpoint,
     get_reporting_stats_endpoint
@@ -28,17 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup - ping Ollama in the background so the server starts immediately
-    logger.info("🔥 Pinging Ollama in the background to wake from cold start...")
-    asyncio.create_task(ping_ollama())
-    yield
-    # Shutdown
-    logger.info("Shutting down...")
-
-
-app = FastAPI(title="Digital Tarmo Backend API", lifespan=lifespan)
+app = FastAPI(title="Digital Tarmo Backend API")
 
 # Get allowed origins from environment or use defaults
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")

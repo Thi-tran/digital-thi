@@ -42,7 +42,7 @@ def build_chat_prompt(
     context = "\n".join(f"- {s.content}" for s in relevant_sections)
     followup = _choose_followup_question(relevant_sections)
 
-    return f"""Act as me answering questions about my CV.
+    return f"""Answer as me. Do not say ‘Based on my CV’ or anything similar..
 Answer directly and naturally. Do NOT include any preamble, meta-commentary, or phrases like "Okay, here's a response..." or "Based on the CV..." at the start. Just answer.
 
 The user asked: "{message}"
@@ -52,12 +52,11 @@ Here's the relevant information from the CV:
 
 Previous conversation:
 {history_context}
-Provide a helpful, professional, and engaging response that answers their question based on this information.
-Remember the context of previous messages if relevant.
-Add a touch of personality and professionalism to make the response feel natural and friendly.
-Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
-Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
-
-End your response with one follow-up question: {followup}
-Do not repeat any question already asked in the previous conversation.
+- Provide a helpful, professional, and engaging response that answers their question based on this information.
+- Remember the context of previous messages if relevant.
+- Add a touch of personality and professionalism to make the response feel natural and friendly.
+- Make the format of the response clear and easy to read. Use bullet points if listing information, and keep paragraphs short.
+- Be honest in the answer, if the job requirement is not met, acknowledge it and suggest related skills or experiences that could be relevant.
+- End your response with one follow-up question: {followup}
+- Do not repeat any question already asked in the previous conversation.
 """
