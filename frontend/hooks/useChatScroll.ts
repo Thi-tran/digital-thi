@@ -8,6 +8,7 @@ interface UseChatScrollOptions {
 interface UseChatScrollReturn {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   showSpacer: boolean;
+  triggerSpacer: () => void;
 }
 
 export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScrollOptions): UseChatScrollReturn {
@@ -24,8 +25,12 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
 
     const handleScroll = () => {
       if (isProgrammaticScrollRef.current) return;
-      const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
-      if (!atBottom) {
+
+      // Only remove the spacer when the user has scrolled well past the real
+      // content — more than double of a screen into the spacer zone.
+      // This creates a buffer and avoids a sudden layout jump on small scrolls.
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom > container.clientHeight * 2) {
         setShowSpacer(false);
       }
     };
@@ -34,11 +39,15 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // When a new message is added, show spacer and scroll the user message to the top
+  // When a new message is added (not the first), show spacer and scroll the user message to the top
   useEffect(() => {
     if (messagesLength > prevMessagesLengthRef.current && lastUserMessageRef.current && scrollContainerRef.current) {
-      setShowSpacer(true);
       isProgrammaticScrollRef.current = true;
+
+      // Only show spacer from the second message onwards
+      if (prevMessagesLengthRef.current > 1) {
+        setShowSpacer(true);
+      }
 
       const container = scrollContainerRef.current;
       const msgEl = lastUserMessageRef.current;
@@ -53,5 +62,5 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
     prevMessagesLengthRef.current = messagesLength;
   }, [messagesLength, lastUserMessageRef]);
 
-  return { scrollContainerRef, showSpacer };
+  return { scrollContainerRef, showSpacer, triggerSpacer: () => { if (messagesLength > 1) setShowSpacer(true); } };
 }

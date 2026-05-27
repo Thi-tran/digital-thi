@@ -19,7 +19,7 @@ export const ChatPage: React.FC = () => {
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
 
-  const { scrollContainerRef, showSpacer } = useChatScroll({
+  const { scrollContainerRef, showSpacer, triggerSpacer } = useChatScroll({
     messagesLength: messages.length,
     lastUserMessageRef,
   });
@@ -31,6 +31,7 @@ export const ChatPage: React.FC = () => {
   const handleSuggestionClick = async (suggestion: SuggestionButton) => {
     if (isLoading || !sessionId) return;
 
+    triggerSpacer();
     addMessage(suggestion.text, true);
     setIsLoading(true);
     setSuggestions([]); // Hide suggestions after first interaction
@@ -42,6 +43,7 @@ export const ChatPage: React.FC = () => {
   const handleInputSubmit = async () => {
     if (!inputValue.trim() || isLoading || !sessionId) return;
 
+    triggerSpacer();
     addMessage(inputValue, true);
     setIsLoading(true);
     setSuggestions([]); // Hide suggestions after first interaction
