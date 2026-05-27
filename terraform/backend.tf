@@ -1,4 +1,5 @@
 # ─── Cloud Run (Backend) ──────────────────────────────────────────────────────
+# Changes to image and Cloud Build labels are ignored to avoid conflicts.
 
 resource "google_cloud_run_v2_service" "backend" {
   name     = "digital-tarmo-backend"
@@ -35,7 +36,6 @@ resource "google_cloud_run_v2_service" "backend" {
         cpu_idle = true
       }
 
-      # Plain env vars
       env {
         name  = "FRONTEND_URL"
         value = var.frontend_url
@@ -53,7 +53,6 @@ resource "google_cloud_run_v2_service" "backend" {
         value = var.region
       }
 
-      # Secret from Secret Manager (managed outside Terraform)
       env {
         name = "DATABASE_URL"
         value_source {
@@ -64,6 +63,16 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
     }
+  }
+
+  lifecycle {
+    # Cloud Build manages the image and deployment labels — don't overwrite them
+    ignore_changes = [
+      template[0].containers[0].image,
+      template[0].labels,
+      client,
+      client_version,
+    ]
   }
 
   depends_on = [
