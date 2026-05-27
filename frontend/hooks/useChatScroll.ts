@@ -27,8 +27,10 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
       if (isProgrammaticScrollRef.current) return;
       if (!showSpacer) return;
 
-      // Remove spacer once user scrolls back up past the position we scrolled to
-      if (container.scrollTop < scrolledToRef.current) {
+      // Remove spacer once user scrolls back up past the question position,
+      // with a minimum buffer of one screen height for short answers.
+      const threshold = scrolledToRef.current - container.clientHeight;
+      if (container.scrollTop < threshold) {
         setShowSpacer(false);
       }
     };
