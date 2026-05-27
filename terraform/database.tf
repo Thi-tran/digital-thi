@@ -9,10 +9,10 @@ resource "google_sql_database_instance" "postgres" {
   deletion_protection = true
 
   settings {
-    tier              = "db-g1-small"
+    tier              = "db-f1-micro"
     availability_type = "ZONAL"
     disk_size         = 20
-    disk_type         = "PD_SSD"
+    disk_type         = "PD_HDD"
     disk_autoresize   = true
 
     ip_configuration {

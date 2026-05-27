@@ -8,37 +8,43 @@ interface UseChatScrollOptions {
 interface UseChatScrollReturn {
   scrollContainerRef: RefObject<HTMLDivElement | null>;
   showSpacer: boolean;
+  triggerSpacer: () => void;
 }
 
 export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScrollOptions): UseChatScrollReturn {
-  // Spacer is hidden on first load — only shown after user sends a message
   const [showSpacer, setShowSpacer] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messagesLength);
   const isProgrammaticScrollRef = useRef(false);
+  // The scrollTop at the time we scrolled the question to the top
+  const scrolledToRef = useRef<number>(0);
 
-  // Remove the spacer once the user manually scrolls up
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       if (isProgrammaticScrollRef.current) return;
-      const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
-      if (!atBottom) {
+      if (!showSpacer) return;
+
+      // Remove spacer once user scrolls back up past the position we scrolled to
+      if (container.scrollTop < scrolledToRef.current) {
         setShowSpacer(false);
       }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [showSpacer]);
 
-  // When a new message is added, show spacer and scroll the user message to the top
+  // When a new message is added, show spacer and scroll user message to top
   useEffect(() => {
     if (messagesLength > prevMessagesLengthRef.current && lastUserMessageRef.current && scrollContainerRef.current) {
-      setShowSpacer(true);
       isProgrammaticScrollRef.current = true;
+
+      if (prevMessagesLengthRef.current > 1) {
+        setShowSpacer(true);
+      }
 
       const container = scrollContainerRef.current;
       const msgEl = lastUserMessageRef.current;
@@ -47,11 +53,17 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
       const offset = msgTop - containerTop + container.scrollTop;
       container.scrollTo({ top: offset - 10, behavior: 'smooth' });
 
-      // Release the lock after the smooth scroll animation
+      // Record where we scrolled to — removing spacer triggers when user scrolls above this
+      scrolledToRef.current = offset - 10;
+
       setTimeout(() => { isProgrammaticScrollRef.current = false; }, 2000);
     }
     prevMessagesLengthRef.current = messagesLength;
   }, [messagesLength, lastUserMessageRef]);
 
-  return { scrollContainerRef, showSpacer };
+  return {
+    scrollContainerRef,
+    showSpacer,
+    triggerSpacer: () => { if (messagesLength > 1) setShowSpacer(true); },
+  };
 }
