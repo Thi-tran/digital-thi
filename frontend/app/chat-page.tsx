@@ -58,7 +58,7 @@ export const ChatPage: React.FC = () => {
   // Hide suggestions when history is loaded or user has sent messages
   const showInitialState = messages.length === 0 && !isLoadingHistory;
 
-  // Find the index of the last user message for attaching the ref
+  // Find the index of the last user message for ref
   const lastUserMessageIndex = messages.reduce((last, msg, i) => msg.isUser ? i : last, -1);
 
   return (
