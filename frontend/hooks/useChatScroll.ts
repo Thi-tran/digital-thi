@@ -26,11 +26,10 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
     const handleScroll = () => {
       if (isProgrammaticScrollRef.current) return;
 
-      // Only remove the spacer when the user has scrolled well past the real
-      // content — more than double of a screen into the spacer zone.
-      // This creates a buffer and avoids a sudden layout jump on small scrolls.
+      // Remove spacer only when the user has scrolled up past the entire spacer —
+      // i.e. the spacer (h-screen = clientHeight) is fully above the viewport.
       const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distanceFromBottom > container.clientHeight * 2) {
+      if (distanceFromBottom > container.clientHeight) {
         setShowSpacer(false);
       }
     };
