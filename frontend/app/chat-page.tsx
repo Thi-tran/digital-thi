@@ -8,7 +8,7 @@ import {
   SuggestionGrid,
   ChatSection,
 } from '@/components';
-import { useConversation } from '@/hooks';
+import { useConversation, useChatScroll } from '@/hooks';
 import { INITIAL_SUGGESTIONS, GREETING_MESSAGE } from '@/constants/suggestions';
 import { SuggestionButton } from '@/types';
 import { personalAvatar } from '@/components/Avatar';
@@ -17,26 +17,16 @@ export const ChatPage: React.FC = () => {
   const { messages, addMessage, isLoading, isStreaming, isLoadingHistory, setIsLoading, sessionId, streamMessage } = useConversation();
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
-  const prevMessagesLengthRef = useRef(0);
+
+  const { scrollContainerRef, showSpacer } = useChatScroll({
+    messagesLength: messages.length,
+    lastUserMessageRef,
+  });
 
   useEffect(() => {
     fetch('/api/chat', { method: 'GET' }).catch(() => { });
   }, []);
-
-  // When a new message is added, scroll the user message to the very top of the container
-  useEffect(() => {
-    if (messages.length > prevMessagesLengthRef.current && lastUserMessageRef.current && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const msgEl = lastUserMessageRef.current;
-      const containerTop = container.getBoundingClientRect().top;
-      const msgTop = msgEl.getBoundingClientRect().top;
-      const offset = msgTop - containerTop + container.scrollTop;
-      container.scrollTo({ top: offset - 10, behavior: 'smooth' });
-    }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages.length]);
 
   const handleSuggestionClick = async (suggestion: SuggestionButton) => {
     if (isLoading || !sessionId) return;
@@ -131,8 +121,8 @@ export const ChatPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Spacer so the last user message can always scroll to the top */}
-              {isLoading && <div className="h-screen" />}
+              {/* Spacer so the last user message can scroll to the top — hidden on first load and after user scrolls up */}
+              {showSpacer && <div className="h-screen" />}
             </>
           )}
         </div>
