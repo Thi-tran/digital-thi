@@ -62,7 +62,7 @@ export const ChatPage: React.FC = () => {
   const lastUserMessageIndex = messages.reduce((last, msg, i) => msg.isUser ? i : last, -1);
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-zinc-950">
+    <div className="flex h-dvh flex-col bg-white dark:bg-zinc-950">
       <Header title="Digital Tarmo" />
 
       <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
@@ -124,7 +124,7 @@ export const ChatPage: React.FC = () => {
               )}
 
               {/* Spacer so the last user message can scroll to the top — hidden on first load and after user scrolls up */}
-              {showSpacer && <div className="h-screen" />}
+              {showSpacer && <div className="h-dvh" />}
             </>
           )}
         </div>
