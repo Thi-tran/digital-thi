@@ -18,10 +18,12 @@ export const ChatPage: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState(INITIAL_SUGGESTIONS);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
+  const lastBotMessageRef = useRef<HTMLDivElement>(null);
 
   const { scrollContainerRef, showSpacer, triggerSpacer } = useChatScroll({
     messagesLength: messages.length,
     lastUserMessageRef,
+    lastBotMessageRef,
   });
 
   useEffect(() => {
@@ -58,8 +60,9 @@ export const ChatPage: React.FC = () => {
   // Hide suggestions when history is loaded or user has sent messages
   const showInitialState = messages.length === 0 && !isLoadingHistory;
 
-  // Find the index of the last user message for ref
+  // Find the index of the last user message and last bot message for refs
   const lastUserMessageIndex = messages.reduce((last, msg, i) => msg.isUser ? i : last, -1);
+  const lastBotMessageIndex = messages.reduce((last, msg, i) => !msg.isUser ? i : last, -1);
 
   return (
     <div className="flex h-dvh flex-col bg-white dark:bg-zinc-950">
@@ -102,7 +105,11 @@ export const ChatPage: React.FC = () => {
               {messages.map((message, index) => (
                 <Message
                   key={message.id}
-                  ref={index === lastUserMessageIndex ? lastUserMessageRef : undefined}
+                  ref={
+                    index === lastUserMessageIndex ? lastUserMessageRef :
+                    index === lastBotMessageIndex ? lastBotMessageRef :
+                    undefined
+                  }
                   content={message.content}
                   isUser={message.isUser}
                   avatarSrc={!message.isUser ? personalAvatar : undefined}

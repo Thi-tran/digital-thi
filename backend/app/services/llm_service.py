@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 # Vertex AI configuration
 PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-497317")
 LOCATION = os.getenv("GCP_LOCATION", "europe-west1")
-_client = genai.Client(enterprise=True, project=PROJECT_ID, location='eu')
+_client = genai.Client(enterprise=True, project=PROJECT_ID, location=LOCATION)
 
-CHAT_MODEL = "gemini-3.1-flash-lite" 
+CHAT_MODEL = "gemini-2.5-flash" 
 
 _FALLBACK_NO_SECTIONS = (
     "I couldn't find specific information about that in my CV. "
