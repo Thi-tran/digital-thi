@@ -3,6 +3,7 @@ import { useRef, useState, useEffect, RefObject } from 'react';
 interface UseChatScrollOptions {
   messagesLength: number;
   lastUserMessageRef: RefObject<HTMLDivElement | null>;
+  lastBotMessageRef: RefObject<HTMLDivElement | null>;
 }
 
 interface UseChatScrollReturn {
@@ -11,13 +12,13 @@ interface UseChatScrollReturn {
   triggerSpacer: () => void;
 }
 
-export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScrollOptions): UseChatScrollReturn {
+export function useChatScroll({ messagesLength, lastUserMessageRef, lastBotMessageRef }: UseChatScrollOptions): UseChatScrollReturn {
   const [showSpacer, setShowSpacer] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messagesLength);
   const isProgrammaticScrollRef = useRef(false);
-  // The scrollTop at the time we scrolled the question to the top
   const scrolledToRef = useRef<number>(0);
+  const lastScrollTopRef = useRef<number>(0);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -27,17 +28,32 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
       if (isProgrammaticScrollRef.current) return;
       if (!showSpacer) return;
 
-      // Remove spacer once user scrolls back up past the question position,
-      // with a minimum buffer of one screen height for short answers.
+      const currentScrollTop = container.scrollTop;
+      const scrollingDown = currentScrollTop > lastScrollTopRef.current;
+      lastScrollTopRef.current = currentScrollTop;
+
+      // If scrolling down, only remove spacer if the answer is taller than viewport
+      if (scrollingDown) {
+        if (lastBotMessageRef.current) {
+          const botMsgHeight = lastBotMessageRef.current.offsetHeight;
+          const viewportHeight = container.clientHeight;
+          if (botMsgHeight > viewportHeight) {
+            setShowSpacer(false);
+          }
+        }
+        return;
+      }
+
+      // Scrolling up — remove spacer if past the threshold
       const threshold = scrolledToRef.current - container.clientHeight;
-      if (container.scrollTop < threshold) {
+      if (currentScrollTop < threshold) {
         setShowSpacer(false);
       }
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [showSpacer]);
+  }, [showSpacer, lastBotMessageRef]);
 
   // When a new message is added, show spacer and scroll user message to top
   useEffect(() => {
@@ -55,8 +71,8 @@ export function useChatScroll({ messagesLength, lastUserMessageRef }: UseChatScr
       const offset = msgTop - containerTop + container.scrollTop;
       container.scrollTo({ top: offset - 10, behavior: 'smooth' });
 
-      // Record where we scrolled to — removing spacer triggers when user scrolls above this
       scrolledToRef.current = offset - 10;
+      lastScrollTopRef.current = offset - 10;
 
       setTimeout(() => { isProgrammaticScrollRef.current = false; }, 2000);
     }
