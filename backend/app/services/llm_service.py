@@ -49,7 +49,7 @@ async def stream_chat_response(
             contents=[prompt],
             config=types.GenerateContentConfig(
                 temperature=0.7,
-                max_output_tokens=1024,
+                max_output_tokens=8192,
             ),
         )
 
