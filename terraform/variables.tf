@@ -1,7 +1,7 @@
 variable "project_id" {
   description = "GCP project ID"
   type        = string
-  default     = "digital-tarmo-497317"
+  default     = "digital-tarmo-500519"
 }
 
 variable "region" {
@@ -31,7 +31,7 @@ variable "db_password" {
 variable "backend_image" {
   description = "Full Artifact Registry image URL for the backend"
   type        = string
-  default     = "europe-west1-docker.pkg.dev/digital-tarmo-497317/digitaltarmo-repo/backend:latest"
+  default     = "europe-west1-docker.pkg.dev/digital-tarmo-500519/digitaltarmo-repo/backend:latest"
 }
 
 variable "frontend_url" {

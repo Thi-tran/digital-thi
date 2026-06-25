@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 logger = logging.getLogger(__name__)
 
 # Configure Vertex AI client
-PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-497317")
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-500519")
 LOCATION = os.getenv("GCP_LOCATION", "europe-west1")
 vertexAIClient = genai.Client(enterprise=True, project=PROJECT_ID, location=LOCATION)
 
