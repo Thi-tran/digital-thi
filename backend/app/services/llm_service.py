@@ -13,7 +13,7 @@ from app.models import SearchResult
 logger = logging.getLogger(__name__)
 
 # Vertex AI configuration
-PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-497317")
+PROJECT_ID = os.getenv("GCP_PROJECT_ID", "digital-tarmo-500519")
 LOCATION = os.getenv("GCP_LOCATION", "europe-west1")
 _client = genai.Client(enterprise=True, project=PROJECT_ID, location=LOCATION)
 
