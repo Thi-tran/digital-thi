@@ -87,12 +87,12 @@ export const ChatPage: React.FC = () => {
                   <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-100" />
                   <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-200" />
                 </div>
-                <span className="text-sm">Loading previous conversation...</span>
+                <span className="text-sm">Chargement de la conversation précédente...</span>
               </div>
             </div>
           ) : showInitialState ? (
             <div className="flex flex-1 items-center justify-center px-6 py-12">
-              <ChatSection title="Ask me anything" subtitle="Click a suggestion below or type your own question">
+              <ChatSection title="Posez-moi vos questions" subtitle="Cliquez sur une suggestion ci-dessous ou saisissez votre propre question">
                 <SuggestionGrid
                   suggestions={suggestions}
                   onSelect={handleSuggestionClick}

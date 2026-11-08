@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Digital Théo",
-  description: "Introduce myself with a chatbot interface. Ask me anything about my CV and experience!",
+  description: "Présentez-vous grâce à une interface de chatbot. Posez-moi toutes vos questions sur mon CV et mon expérience !",
 };
 
 export default function RootLayout({

@@ -24,12 +24,12 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Invalid username or password');
+        setError('Nom d\'utilisateur ou mot de passe invalide');
       } else if (result?.ok) {
         router.push('/admin');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -39,13 +39,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="w-full max-w-md">
         <div className="bg-zinc-800 rounded-lg shadow-xl p-8">
-          <h1 className="text-3xl font-bold text-white mb-2 text-center">Admin Panel</h1>
-          <p className="text-gray-400 text-center mb-8">Enter your credentials</p>
+          <h1 className="text-3xl font-bold text-white mb-2 text-center">Espace administrateur</h1>
+          <p className="text-gray-400 text-center mb-8">Saisissez vos identifiants</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Username
+                Nom d'utilisateur
               </label>
               <input
                 type="text"
@@ -59,7 +59,7 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Password
+                Mot de passe
               </label>
               <input
                 type="password"
@@ -82,7 +82,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/50 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
         </div>

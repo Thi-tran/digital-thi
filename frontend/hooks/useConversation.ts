@@ -130,7 +130,7 @@ export const useConversation = (): UseConversationReturn => {
     } catch (error) {
       console.error('Error streaming chat response:', error);
       setIsStreaming(false);
-      addMessage('Sorry, there was an error processing your request. Please try again.', false);
+      addMessage('Désolé, une erreur est survenue lors du traitement de votre demande. Veuillez réessayer.', false);
     }
   }, [addMessage, updateLastMessage]);
 

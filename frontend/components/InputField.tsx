@@ -33,7 +33,7 @@ export const InputField: React.FC<InputFieldProps> = ({
           onClick={onSubmit}
           disabled={isLoading}
           className="flex items-center justify-center text-zinc-500 hover:text-blue-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-blue-400 transition-colors"
-          aria-label="Send message"
+          aria-label="Envoyer le message"
         >
           {icon}
         </button>
