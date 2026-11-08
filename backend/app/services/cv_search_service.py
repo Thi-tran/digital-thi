@@ -25,7 +25,7 @@ _SIMILARITY_QUERY = text("""
 async def search_similar_sections(
     db: AsyncSession,
     embeddings: list[float],
-    limit: int = 5,
+    limit: int = 7,
 ) -> list[SearchResult]:
     """
     Return the *limit* CV sections most similar to *embeddings*.

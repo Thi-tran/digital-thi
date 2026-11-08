@@ -16,7 +16,7 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         const ADMIN_USERNAME = process.env.NEXT_PUBLIC_ADMIN_USERNAME || 'admin';
-        const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+        const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || 'b7ce8c6d0db24aa41b62247ca8165b2143b1d5b8711b48029e26bdd42a9f74b4';
 
         if (!credentials?.username || !credentials?.password) {
           return null;
