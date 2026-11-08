@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-app = FastAPI(title="Digital Tarmo Backend API")
+app = FastAPI(title="Digital Théo Backend API")
 
 # Get allowed origins from environment or use defaults
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -42,7 +42,7 @@ app.add_middleware(
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "Digital Tarmo Backend API", "status": "running"}
+    return {"message": "Digital Théo Backend API", "status": "running"}
 
 # Chat endpoint
 @app.post("/api/chat")

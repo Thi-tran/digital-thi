@@ -3,25 +3,25 @@ import { SuggestionButton } from '@/types';
 export const INITIAL_SUGGESTIONS: SuggestionButton[] = [
   {
     id: '1',
-    text: 'What is your professional background?',
+    text: 'Quel est votre parcours professionnel ?',
   },
   {
     id: '2',
-    text: 'What are your technical skills?',
+    text: 'Quelles sont vos compétences techniques ?',
   },
   {
     id: '3',
-    text: 'Tell me about your recent projects',
+    text: 'Parlez-moi de vos projets récents',
   },
   {
     id: '4',
-    text: 'What is your educational background?',
+    text: 'Quelle est votre formation ?',
   },
   {
     id: '5',
-    text: 'How can I contact you?',
+    text: 'Comment puis-je vous contacter ?',
   },
 ];
 
 export const GREETING_MESSAGE =
-  'Hi, welcome to my digital version! Feel free to ask anything about me :)';
+  'Bonjour, bienvenue sur ma version numérique ! N\'hésitez pas à me poser toutes vos questions :)';

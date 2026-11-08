@@ -1,7 +1,6 @@
 """
 Migration 003: Populate sample CV sections
 """
-from sqlalchemy import text
 
 async def upgrade(connection):
     """Insert sample CV sections"""

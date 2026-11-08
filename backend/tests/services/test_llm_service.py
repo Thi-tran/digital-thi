@@ -36,7 +36,7 @@ async def _collect(async_gen) -> list[str]:
 async def test_yields_fallback_when_no_sections():
     chunks = await _collect(svc.stream_chat_response("prompt", []))
     assert len(chunks) == 1
-    assert "couldn't find" in chunks[0].lower()
+    assert "pas trouvé" in chunks[0].lower()
 
 
 # ---------------------------------------------------------------------------

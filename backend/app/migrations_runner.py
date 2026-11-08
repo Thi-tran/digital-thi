@@ -75,4 +75,4 @@ async def run_migrations():
         
         await engine.dispose()
     except Exception as e:
-        logger.warning(f"Migration runner error: {str(e)}")
+        logger.exception(f"Migration runner error: {e!r}")

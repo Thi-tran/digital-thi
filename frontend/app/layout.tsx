@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Digital Tarmo",
+  title: "Digital Théo",
   description: "Introduce myself with a chatbot interface. Ask me anything about my CV and experience!",
 };
 
