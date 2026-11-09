@@ -65,7 +65,7 @@ export const Message = React.forwardRef<HTMLDivElement, MessageProps>(({
   timestamp,
 }, ref) => {
   const timeString = timestamp
-    ? timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    ? timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     : '';
 
   const cleanContent = content.replace(/^["'\u201c\u201d]+|["'\u201c\u201d]+$/g, '').trim();

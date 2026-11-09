@@ -66,7 +66,7 @@ export const ChatPage: React.FC = () => {
 
   return (
     <div className="flex h-dvh flex-col bg-white dark:bg-zinc-950">
-      <Header title="Digital Tarmo" />
+      <Header title="Digital Théo" />
 
       <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
         <div className="space-y-4 px-6 py-8">
@@ -75,7 +75,7 @@ export const ChatPage: React.FC = () => {
             content={GREETING_MESSAGE}
             isUser={false}
             avatarSrc={personalAvatar}
-            avatarAlt="Digital Tarmo"
+            avatarAlt="Digital Théo"
             timestamp={new Date()}
           />
 
@@ -87,12 +87,12 @@ export const ChatPage: React.FC = () => {
                   <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-100" />
                   <div className="h-2 w-2 rounded-full bg-zinc-400 animate-bounce delay-200" />
                 </div>
-                <span className="text-sm">Loading previous conversation...</span>
+                <span className="text-sm">Chargement de la conversation précédente...</span>
               </div>
             </div>
           ) : showInitialState ? (
             <div className="flex flex-1 items-center justify-center px-6 py-12">
-              <ChatSection title="Ask me anything" subtitle="Click a suggestion below or type your own question">
+              <ChatSection title="Posez-moi vos questions" subtitle="Cliquez sur une suggestion ci-dessous ou saisissez votre propre question">
                 <SuggestionGrid
                   suggestions={suggestions}
                   onSelect={handleSuggestionClick}
@@ -113,7 +113,7 @@ export const ChatPage: React.FC = () => {
                   content={message.content}
                   isUser={message.isUser}
                   avatarSrc={!message.isUser ? personalAvatar : undefined}
-                  avatarAlt="Digital Tarmo"
+                  avatarAlt="Digital Théo"
                   timestamp={message.timestamp}
                 />
               ))}
@@ -138,7 +138,7 @@ export const ChatPage: React.FC = () => {
       </div>
       <div className="border-t border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-950">
         <InputField
-          placeholder="Ask about my experience, skills, projects..."
+          placeholder="Posez vos questions sur mon expérience, mes compétences, mes projets..."
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onSubmit={handleInputSubmit}

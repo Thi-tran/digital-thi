@@ -71,5 +71,5 @@ def generate_embedding(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error(f"Embedding generation failed: {exc}")
-        raise HTTPException(status_code=500, detail="Failed to generate embeddings")
+        logger.exception(f"Embedding generation failed: {exc!r}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate embeddings: {exc!r}")

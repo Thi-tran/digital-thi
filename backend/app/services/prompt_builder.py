@@ -5,8 +5,8 @@ import random
 from app.models import SearchResult
 
 _PIVOT_QUESTIONS = [
-    "Would you like to know more about my background or education?",
-    "Curious about my skillset or a fun fact about me?",
+    "Souhaitez-vous en savoir plus sur mon parcours ou ma formation ?",
+    "Curieux de connaître mes compétences ou une anecdote amusante à mon sujet ?",
 ]
 
 
@@ -42,7 +42,8 @@ def build_chat_prompt(
     context = "\n".join(f"- {s.content}" for s in relevant_sections)
     followup = _choose_followup_question(relevant_sections)
 
-    return f"""Answer as me. Do not say ‘Based on my CV’ or anything similar..
+    return f"""IMPORTANT: Always answer in French (français), whatever the language of the user's question. Use "je" and speak in the first person.
+Answer as me. Do not say ‘Based on my CV’ or anything similar..
 Answer directly and naturally. Do NOT include any preamble, meta-commentary, or phrases like "Okay, here's a response..." or "Based on the CV..." at the start. Just answer.
 
 The user asked: "{message}"
@@ -61,4 +62,5 @@ Previous conversation:
 - End your response with one follow-up question: {followup}. The goal is to understand the employer as much as possible.
 - Do not repeat any question already asked in the previous conversation.
 - Keep the conversation engaging and fun! 
+- The whole response, including the follow-up question, MUST be written in French.
 """

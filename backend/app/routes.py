@@ -215,7 +215,7 @@ async def generate_embeddings_endpoint(db: AsyncSession):
                 logger.debug(f"✅ Generated embedding for {cv_section.section_type}")
             
             except Exception as e:
-                logger.error(f"❌ Error generating embedding for {cv_section.section_type}: {str(e)}")
+                logger.exception(f"❌ Error generating embedding for {cv_section.section_type}: {e!r}")
         
         logger.info(f"✨ Generated {generated_count} embeddings")
         
@@ -225,14 +225,14 @@ async def generate_embeddings_endpoint(db: AsyncSession):
         }
     
     except Exception as e:
-        logger.error(f"Error generating embeddings: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error generating embeddings: {e!r}")
+        raise HTTPException(status_code=500, detail=repr(e))
 
 
 def health_check():
     """Health check endpoint to verify the service is running."""
     try:
-        return {"status": "healthy", "service": "digital-tarmo-backend"}
+        return {"status": "healthy", "service": "digital-theo-backend"}
     except Exception as e:
         return {"status": "unhealthy", "error": str(e)}
 

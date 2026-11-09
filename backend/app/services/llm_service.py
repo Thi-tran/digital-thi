@@ -20,8 +20,9 @@ _client = genai.Client(enterprise=True, project=PROJECT_ID, location=LOCATION)
 CHAT_MODEL = "gemini-2.5-flash" 
 
 _FALLBACK_NO_SECTIONS = (
-    "I couldn't find specific information about that in my CV. "
-    "Feel free to ask me about my skills, experience, education, or projects!"
+    "Je n'ai pas trouvé d'informations précises à ce sujet dans mon CV. "
+    "N'hésitez pas à me poser des questions sur mes compétences, mon expérience, "
+    "ma formation ou mes projets !"
 )
 
 
@@ -62,7 +63,7 @@ async def stream_chat_response(
 
     except Exception as exc:
         logger.warning(f"Vertex AI generation failed, using fallback: {exc}")
-        fallback = "Based on my CV, here's what I found:\n" + "\n".join(
+        fallback = "Voici ce que j'ai trouvé dans mon CV :\n" + "\n".join(
             f"- {s.content}" for s in relevant_sections
         )
         yield fallback

@@ -52,7 +52,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ sessionId, onClose 
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 ${loading ? '' : 'bg-black/50'} z-50 flex items-center justify-center p-4`}
       onClick={onClose}
     >
       <div
@@ -93,7 +93,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({ sessionId, onClose 
                   content={message.bot_response}
                   isUser={false}
                   avatarSrc={personalAvatar}
-                  avatarAlt="Digital Tarmo"
+                  avatarAlt="Digital Théo"
                   timestamp={parseTimestampToDate(message.created_at)}
                 />
               </div>
